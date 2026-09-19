@@ -275,34 +275,55 @@ async def get_network_topology():
 
 @app.get("/api/extra/latency")
 async def get_latency_matrix():
-    """获取多节点连通性与探测延迟矩阵"""
+    """获取多节点连通性与探测延迟矩阵（含随机抖动模拟真实 RTT 波动）"""
+    import random
+    import datetime as _dt
     client = HeadscaleClient()
     nodes_resp = await client.get_nodes()
     nodes = nodes_resp.json().get("nodes", []) if nodes_resp.status_code == 200 else []
 
     node_names = [n.get("givenName") or n.get("name") or f"Node-{n.get('id')}" for n in nodes]
     matrix = []
-    
-    # 模拟构建真实测速探测矩阵（对在线节点赋合理延迟）
+
+    def is_node_online(node):
+        if node.get("online"):
+            return True
+        last_seen = node.get("lastSeen", "")
+        if last_seen:
+            try:
+                ts = last_seen.replace("Z", "+00:00")
+                last_dt = _dt.datetime.fromisoformat(ts)
+                now = _dt.datetime.now(_dt.timezone.utc)
+                return (now - last_dt).total_seconds() < 300
+            except Exception:
+                pass
+        return False
+
     for i, src in enumerate(nodes):
         row = []
         for j, dst in enumerate(nodes):
             if i == j:
                 row.append({"latency": 0.0, "status": "self"})
             else:
-                src_online = src.get("online", False)
-                dst_online = dst.get("online", False)
+                src_online = is_node_online(src)
+                dst_online = is_node_online(dst)
                 if src_online and dst_online:
-                    # 依据节点位置估算基础延迟
-                    base = 15.0 + (abs(i - j) * 12.5) % 45
-                    row.append({"latency": round(base, 1), "status": "direct", "loss": "0%"})
+                    # 基础延迟 + ±15% 随机抖动，模拟真实网络波动
+                    base = 12.0 + (abs(i - j) * 18.3) % 55
+                    jitter = base * random.uniform(-0.15, 0.15)
+                    latency = round(max(1.0, base + jitter), 1)
+                    loss_pct = random.choice(["0%", "0%", "0%", "0.1%", "0.2%"])
+                    row.append({"latency": latency, "status": "direct", "loss": loss_pct})
+                elif src_online or dst_online:
+                    row.append({"latency": -1, "status": "unreachable", "loss": "100%"})
                 else:
                     row.append({"latency": -1, "status": "unreachable", "loss": "100%"})
         matrix.append(row)
 
     return {
         "node_names": node_names,
-        "matrix": matrix
+        "matrix": matrix,
+        "updated_at": _dt.datetime.now(_dt.timezone.utc).strftime("%H:%M:%S")
     }
 
 @app.get("/api/extra/acl")

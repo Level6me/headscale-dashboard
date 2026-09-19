@@ -1003,6 +1003,10 @@
         font-size: 22px;
       }
     }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -1258,8 +1262,19 @@
 
     <!-- 4. 延迟探测矩阵 (Latency) -->
     <main v-if="currentTab === 'latency'">
-      <div class="section-header">节点互联测速丢包矩阵 (RTT)</div>
-      <div class="inset-card" style="padding: 16px; overflow-x: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div class="section-header" style="margin-bottom: 0;">节点互联测速丢包矩阵 (RTT)</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span v-if="latencyUpdatedAt" style="font-size: 11px; color: var(--text-tertiary); font-family: monospace;">
+            <i class="fa-regular fa-clock" style="margin-right: 3px;"></i>{{ latencyUpdatedAt }} UTC
+          </span>
+          <button @click="fetchLatency" class="pill-btn" style="font-size: 12px;" :disabled="latencyRefreshing">
+            <i class="fa-solid fa-arrows-rotate" :style="latencyRefreshing ? 'animation: spin 0.6s linear;' : ''"></i>
+            <span>{{ latencyRefreshing ? '刷新中…' : '立即刷新' }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="inset-card" :style="latencyRefreshing ? 'opacity:0.6;transition:opacity 0.3s' : 'opacity:1;transition:opacity 0.3s'" style="padding: 16px; overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; font-family: monospace;">
           <thead>
             <tr>
@@ -2326,7 +2341,9 @@
         const users = ref([]);
         const preauthKeys = ref([]);
         const routes = ref([]);
-        const latencyData = ref({ node_names: [], matrix: [] });
+        const latencyData = ref({ node_names: [], matrix: [], updated_at: '' });
+        const latencyUpdatedAt = ref('');
+        const latencyRefreshing = ref(false);
         const clientCmds = ref({});
         const aclRawText = ref('');
         const showAdvancedAcl = ref(false);
@@ -2551,9 +2568,19 @@
 
         const fetchLatency = async () => {
           try {
+            latencyRefreshing.value = true;
             const res = await fetch('/api/extra/latency');
-            if (res.ok) latencyData.value = await res.json();
-          } catch(e) {}
+            if (res.ok) {
+              const data = await res.json();
+              latencyData.value = data;
+              // 优先使用服务端时间戳，否则用本地时间
+              const now = new Date();
+              latencyUpdatedAt.value = data.updated_at ||
+                `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            }
+          } catch(e) {} finally {
+            setTimeout(() => { latencyRefreshing.value = false; }, 600);
+          }
         };
 
         const fetchClientCmds = async () => {
@@ -3362,6 +3389,8 @@
           preauthKeys,
           routes,
           latencyData,
+          latencyUpdatedAt,
+          latencyRefreshing,
           clientCmds,
           aclRawText,
           parsedRules,
