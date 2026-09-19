@@ -2188,6 +2188,7 @@
           <button @click="submitAddUser" class="pill-btn accent">创建</button>
         </div>
       </div>
+    </div>
     <!-- 模态弹窗：安全审计日志 -->
     <div class="modal-overlay" :class="{'active': showAuditModal}" @click.self="showAuditModal = false">
       <div class="modal-card" style="max-width: 620px;">
@@ -2661,28 +2662,73 @@
           const dom = document.getElementById('full-topology');
           if (!dom) return;
           if (!fullChart) fullChart = echarts.init(dom);
-          
+
           try {
             const res = await fetch('/api/extra/topology');
             const data = await res.json();
-            
+            const isDark = isDarkNow();
+            const labelColor = isDark ? '#f5f5f7' : '#1d1d1f';
+            const subLabelColor = isDark ? '#8e8e93' : '#86868b';
+
             const option = {
               backgroundColor: 'transparent',
+              tooltip: {
+                trigger: 'item',
+                formatter: (params) => {
+                  if (params.dataType === 'node') {
+                    return `<div style="font-size:12px;line-height:1.7">
+                      <strong>${params.data.name}</strong><br/>
+                      <span style="color:#60a5fa">分类: ${params.data.category}</span><br/>
+                      <span>IP: ${params.data.value || '—'}</span>
+                    </div>`;
+                  }
+                  return params.data.value || '';
+                }
+              },
+              legend: {
+                show: true,
+                data: (data.categories || []).map(c => c.name),
+                bottom: 10,
+                textStyle: { color: subLabelColor, fontSize: 11 },
+                itemWidth: 12,
+                itemHeight: 12
+              },
               series: [{
                 type: 'graph',
                 layout: 'force',
                 roam: true,
                 draggable: true,
-                label: { show: true, position: 'bottom', color: isDarkNow() ? '#f5f5f7' : '#1d1d1f', fontSize: 11 },
+                categories: data.categories || [],
+                label: {
+                  show: true,
+                  position: 'bottom',
+                  color: labelColor,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  formatter: (params) => {
+                    const ip = params.data.value ? `\n${params.data.value}` : '';
+                    return params.data.name + ip;
+                  }
+                },
+                edgeLabel: {
+                  show: false
+                },
                 data: data.nodes,
                 links: data.links,
+                lineStyle: { width: 1.5 },
+                emphasis: {
+                  focus: 'adjacency',
+                  lineStyle: { width: 3 }
+                },
                 force: {
-                  repulsion: 360,
-                  edgeLength: [60, 120]
+                  repulsion: 500,
+                  edgeLength: [80, 180],
+                  gravity: 0.1,
+                  layoutAnimation: true
                 }
               }]
             };
-            fullChart.setOption(option);
+            fullChart.setOption(option, true);
           } catch(e) {}
         };
 
@@ -2691,29 +2737,44 @@
           const dom = document.getElementById('overview-topology');
           if (!dom) return;
           if (!overviewChart) overviewChart = echarts.init(dom);
-          
+
           try {
             const res = await fetch('/api/extra/topology');
             const data = await res.json();
-            
+            const isDark = isDarkNow();
+            const subLabelColor = isDark ? '#8e8e93' : '#86868b';
+
             const option = {
               backgroundColor: 'transparent',
+              tooltip: { show: false },
               series: [{
                 type: 'graph',
                 layout: 'force',
                 roam: false,
-                label: { show: true, position: 'bottom', color: isDarkNow() ? '#8e8e93' : '#86868b', fontSize: 10 },
+                silent: true,
+                categories: data.categories || [],
+                label: {
+                  show: true,
+                  position: 'bottom',
+                  color: subLabelColor,
+                  fontSize: 10,
+                  formatter: (params) => params.data.name
+                },
                 data: data.nodes,
                 links: data.links,
+                lineStyle: { width: 1 },
                 force: {
-                  repulsion: 220,
-                  edgeLength: 50
+                  repulsion: 300,
+                  edgeLength: [50, 100],
+                  gravity: 0.15,
+                  layoutAnimation: false
                 }
               }]
             };
-            overviewChart.setOption(option);
+            overviewChart.setOption(option, true);
           } catch(e) {}
         };
+
 
         const saveSettings = async () => {
           try {
@@ -3251,14 +3312,38 @@
           } catch(e) {}
         };
 
+        // ---- currentTab 切换时按需刷新对应数据 ----
+        watch(() => currentTab.value, async (tab) => {
+          if (tab === 'topology') {
+            await nextTick();
+            renderTopology();
+          } else if (tab === 'overview') {
+            await nextTick();
+            renderOverviewTopology();
+          } else if (tab === 'latency') {
+            fetchLatency();
+          }
+        });
+
         onMounted(() => {
           applyTheme(themeMode.value);
-          refreshAll();
+          refreshAll().then(() => {
+            renderOverviewTopology();
+          });
           fetchDomainConfig();
           fetchCertInfo();
           fetchDnsConfig();
           fetchDerpInfo();
           initWebSocket();
+
+          // 每 30 秒自动静默刷新节点、统计、时延数据
+          setInterval(async () => {
+            await Promise.all([fetchStats(), fetchNodesSilent(), fetchLatency()]);
+            if (currentTab.value === 'topology' || currentTab.value === 'overview') {
+              renderOverviewTopology();
+              if (currentTab.value === 'topology') renderTopology();
+            }
+          }, 30000);
         });
 
         return {

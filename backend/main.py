@@ -173,20 +173,59 @@ async def get_network_topology():
         nid = f"node_{node.get('id')}"
         name = node.get("givenName") or node.get("name") or f"Node-{node.get('id')}"
         is_online = node.get("online", False)
+        
+        # 若 online 字段缺失，通过 lastSeen 时间判断（5分钟内算在线）
+        if not is_online and node.get("lastSeen"):
+            import datetime
+            try:
+                last_seen_str = node.get("lastSeen", "")
+                # 处理 RFC3339 格式
+                last_seen_str = last_seen_str.replace("Z", "+00:00")
+                last_seen = datetime.datetime.fromisoformat(last_seen_str)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                if (now - last_seen).total_seconds() < 300:
+                    is_online = True
+            except Exception:
+                pass
+        
         ips = node.get("ipAddresses", [])
         ip_str = ips[0] if ips else "No IP"
+        username = ""
+        if isinstance(node.get("user"), dict):
+            username = node["user"].get("name", "")
+        elif isinstance(node.get("user"), str):
+            username = node["user"]
+        
+        # 检测出口网关
+        is_exit = any(
+            r.get("advertised") and r.get("enabled") and ("0.0.0.0/0" in r.get("prefix", "") or "::/0" in r.get("prefix", ""))
+            for r in node.get("advertisedRoutes", []) + node.get("enabledRoutes", [])
+        )
+        if is_exit:
+            cat = "出口网关 (Exit Node)"
+            color = "#f59e0b"
+        elif is_online:
+            cat = "在线节点 (Online)"
+            color = "#10b981"
+        else:
+            cat = "离线节点 (Offline)"
+            color = "#ef4444"
 
-        cat = "在线节点 (Online)" if is_online else "离线节点 (Offline)"
-        color = "#10b981" if is_online else "#ef4444"
-
+        display_label = f"{name}" + (f"\n{username}" if username else "")
         echarts_nodes.append({
             "id": nid,
             "name": name,
-            "symbolSize": 42,
+            "symbolSize": 48 if is_exit else (40 if is_online else 32),
             "category": cat,
-            "value": ip_str,
-            "itemStyle": {"color": color},
-            "nodeData": node
+            "value": ip_str + (f" | {username}" if username else ""),
+            "label": {"formatter": display_label},
+            "itemStyle": {
+                "color": color,
+                "borderColor": "#ffffff" if is_online else color,
+                "borderWidth": 2 if is_online else 0,
+                "shadowColor": color,
+                "shadowBlur": 8 if is_online else 0
+            },
         })
 
         # 控制面与各节点的管理链路
@@ -194,15 +233,17 @@ async def get_network_topology():
             "source": "control_plane",
             "target": nid,
             "lineStyle": {
-                "color": "#60a5fa",
+                "color": "#60a5fa" if is_online else "#6b7280",
                 "type": "dashed" if not is_online else "solid",
-                "width": 2 if is_online else 1
+                "width": 2 if is_online else 1,
+                "opacity": 0.8 if is_online else 0.4
             },
             "value": "Control Protocol"
         })
 
-    # 节点之间的虚拟 Mesh 连通线（模拟同用户或同网络下的 P2P 互联）
+    # 在线节点之间的 WireGuard Mesh P2P 连线
     online_ids = [n["id"] for n in echarts_nodes if n["category"] == "在线节点 (Online)"]
+    exit_ids = [n["id"] for n in echarts_nodes if n["category"] == "出口网关 (Exit Node)"]
     for i in range(len(online_ids)):
         for j in range(i + 1, len(online_ids)):
             echarts_links.append({
@@ -210,10 +251,20 @@ async def get_network_topology():
                 "target": online_ids[j],
                 "lineStyle": {
                     "color": "#34d399",
-                    "curveness": 0.1,
-                    "opacity": 0.4
+                    "curveness": 0.15,
+                    "opacity": 0.5,
+                    "width": 1.5
                 },
-                "value": "WireGuard P2P Direct"
+                "value": "WireGuard P2P"
+            })
+    # 出口网关也与在线节点连接
+    for eid in exit_ids:
+        for oid in online_ids:
+            echarts_links.append({
+                "source": eid,
+                "target": oid,
+                "lineStyle": {"color": "#f59e0b", "opacity": 0.5, "width": 1.5},
+                "value": "Exit Route"
             })
 
     return {
