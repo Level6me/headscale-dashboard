@@ -10,6 +10,9 @@ ENV/
 
 # Configuration & Secrets
 backend/config.json
+backend/audit_logs.json
+backend/node_metadata.json
+backend/dns_config.json
 backend/certs/*
 !backend/certs/.gitkeep
 *.pem

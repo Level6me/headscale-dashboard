@@ -247,3 +247,38 @@ def reload_headscale_service() -> bool:
         return True
     except Exception:
         return False
+
+def get_derp_info() -> Dict[str, Any]:
+    """读取 DERP 中继配置与状态"""
+    info = {
+        "server_enabled": False,
+        "region_id": 999,
+        "region_code": "headscale",
+        "region_name": "Headscale Embedded DERP",
+        "stun_listen_addr": "0.0.0.0:3478",
+        "urls": [],
+        "paths": []
+    }
+    if HEADSCALE_CONFIG_FILE.exists():
+        try:
+            content = HEADSCALE_CONFIG_FILE.read_text(encoding="utf-8")
+            m_enabled = re.search(r"^\s*enabled:\s*(true|false)", content, re.MULTILINE | re.IGNORECASE)
+            m_rid = re.search(r"^\s*region_id:\s*(\d+)", content, re.MULTILINE)
+            m_rcode = re.search(r"^\s*region_code:\s*([^\n#]+)", content, re.MULTILINE)
+            m_rname = re.search(r"^\s*region_name:\s*([^\n#]+)", content, re.MULTILINE)
+            m_stun = re.search(r"^\s*stun_listen_addr:\s*([^\n#]+)", content, re.MULTILINE)
+
+            if m_enabled:
+                info["server_enabled"] = m_enabled.group(1).lower() == "true"
+            if m_rid:
+                info["region_id"] = int(m_rid.group(1))
+            if m_rcode:
+                info["region_code"] = m_rcode.group(1).strip().strip('"\'')
+            if m_rname:
+                info["region_name"] = m_rname.group(1).strip().strip('"\'')
+            if m_stun:
+                info["stun_listen_addr"] = m_stun.group(1).strip().strip('"\'')
+        except Exception:
+            pass
+    return info
+

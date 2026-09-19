@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from fastapi import FastAPI, HTTPException, Request, Response, Body, Query
+from fastapi import FastAPI, HTTPException, Request, Response, Body, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse
@@ -13,6 +13,10 @@ from fastapi.responses import JSONResponse, FileResponse
 from config import load_config, save_config
 from headscale_client import HeadscaleClient
 from monitor import monitor_service, send_feishu_card
+from audit_logger import record_audit_log, get_audit_logs, clear_audit_logs
+from dns_manager import read_dns_config, save_dns_config
+from ws_manager import ws_manager
+from node_metadata_manager import set_node_tags, attach_metadata_to_nodes
 from domain_cert_manager import (
     parse_certificate,
     get_installed_cert_info,
@@ -20,7 +24,8 @@ from domain_cert_manager import (
     read_headscale_config,
     update_headscale_server_url,
     update_headscale_tls_paths,
-    reload_headscale_service
+    reload_headscale_service,
+    get_derp_info
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -51,6 +56,11 @@ app.add_middleware(
 )
 
 STATIC_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+
+@app.get("/api/v1/health")
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "headscale-dashboard"}
 
 # ==================== 扩展功能 API ====================
 
@@ -409,6 +419,88 @@ async def get_certificate_info():
         "cert": info
     }
 
+# ==================== 实时 WebSocket 通道 ====================
+
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            msg = await websocket.receive_text()
+            if msg == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}))
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception:
+        ws_manager.disconnect(websocket)
+
+# ==================== 操作审计日志 API ====================
+
+@app.get("/api/extra/audit-logs")
+async def get_audit_logs_api(limit: int = Query(100, ge=1, le=500)):
+    logs = get_audit_logs(limit=limit)
+    return {"logs": logs, "total": len(logs)}
+
+@app.delete("/api/extra/audit-logs")
+async def clear_audit_logs_api(request: Request):
+    client_ip = request.client.host if request.client else ""
+    clear_audit_logs()
+    record_audit_log("清空审计日志", "系统安全", "管理员手动清空了操作审计日志", client_ip=client_ip)
+    return {"success": True, "message": "审计日志已清空"}
+
+# ==================== MagicDNS 与 Extra Records API ====================
+
+@app.get("/api/extra/dns")
+async def get_dns_config_api():
+    return read_dns_config()
+
+@app.post("/api/extra/dns")
+async def update_dns_config_api(request: Request, data: Dict[str, Any] = Body(...)):
+    client_ip = request.client.host if request.client else ""
+    magic_dns = data.get("magic_dns", True)
+    base_domain = data.get("base_domain", "net")
+    override_local_dns = data.get("override_local_dns", True)
+    nameservers = data.get("nameservers", ["1.1.1.1", "1.0.0.1", "223.5.5.5"])
+    extra_records = data.get("extra_records", [])
+    sync_to_hs = data.get("sync_to_headscale", True)
+
+    result = save_dns_config(
+        magic_dns=magic_dns,
+        base_domain=base_domain,
+        override_local_dns=override_local_dns,
+        nameservers=nameservers,
+        extra_records=extra_records,
+        sync_to_headscale=sync_to_hs
+    )
+    record_audit_log(
+        action="更新 DNS 配置",
+        target=f"Base Domain: {base_domain}",
+        detail=f"MagicDNS: {magic_dns}, Nameservers: {len(nameservers)}, Extra Records: {len(extra_records)}",
+        client_ip=client_ip
+    )
+    return {"success": True, "message": "DNS 配置与 Extra Records 已成功保存！", "config": result}
+
+# ==================== DERP 中继信息 API ====================
+
+@app.get("/api/extra/derp-info")
+async def get_derp_info_api():
+    return get_derp_info()
+
+# ==================== 节点自定义标签 API ====================
+
+@app.post("/api/extra/node/{node_id}/tags")
+async def update_node_tags_api(node_id: int, request: Request, data: Dict[str, Any] = Body(...)):
+    client_ip = request.client.host if request.client else ""
+    tags = data.get("tags", [])
+    updated_tags = set_node_tags(str(node_id), tags)
+    record_audit_log(
+        action="修改节点标签",
+        target=f"Node-{node_id}",
+        detail=f"设置标签: {', '.join(updated_tags) if updated_tags else '清空标签'}",
+        client_ip=client_ip
+    )
+    return {"success": True, "tags": updated_tags}
+
 # ==================== 标准 Headscale 原生 API 代理 ====================
 
 @app.get("/api/v1/user")
@@ -418,49 +510,72 @@ async def list_users():
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/user")
-async def create_user(data: Dict[str, Any] = Body(...)):
+async def create_user(request: Request, data: Dict[str, Any] = Body(...)):
+    client_ip = request.client.host if request.client else ""
     name = data.get("name")
     if not name:
         raise HTTPException(status_code=400, detail="用户名不能为空")
     client = HeadscaleClient()
     resp = await client.create_user(name)
+    if resp.status_code in (200, 201):
+        record_audit_log("创建用户空间", f"用户: {name}", f"成功创建命名空间/用户 {name}", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.delete("/api/v1/user/{name}")
-async def delete_user(name: str):
+async def delete_user(name: str, request: Request):
+    client_ip = request.client.host if request.client else ""
     client = HeadscaleClient()
     resp = await client.delete_user(name)
     content = resp.json() if resp.content else {}
+    if resp.status_code == 200:
+        record_audit_log("删除用户空间", f"用户: {name}", f"注销命名空间/用户 {name}", client_ip=client_ip, status="warning")
     return JSONResponse(status_code=resp.status_code, content=content)
 
 @app.get("/api/v1/node")
 async def list_nodes(user: Optional[str] = None):
     client = HeadscaleClient()
     resp = await client.get_nodes(user=user)
+    if resp.status_code == 200:
+        data = resp.json()
+        nodes = data.get("nodes", []) or []
+        attach_metadata_to_nodes(nodes)
+        return JSONResponse(status_code=200, content=data)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.delete("/api/v1/node/{node_id}")
-async def delete_node(node_id: int):
+async def delete_node(node_id: int, request: Request):
+    client_ip = request.client.host if request.client else ""
     client = HeadscaleClient()
     resp = await client.delete_node(node_id)
+    if resp.status_code == 200:
+        record_audit_log("注销节点", f"Node-{node_id}", f"管理员注销了节点 {node_id}", client_ip=client_ip, status="warning")
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/node/{node_id}/rename/{new_name}")
-async def rename_node(node_id: int, new_name: str):
+async def rename_node(node_id: int, new_name: str, request: Request):
+    client_ip = request.client.host if request.client else ""
     client = HeadscaleClient()
     resp = await client.rename_node(node_id, new_name)
+    if resp.status_code == 200:
+        record_audit_log("节点重命名", f"Node-{node_id}", f"修改节点别名为: {new_name}", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/node/{node_id}/user")
-async def move_node_user(node_id: int, user: str = Query(...)):
+async def move_node_user(node_id: int, user: str = Query(...), request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     client = HeadscaleClient()
     resp = await client.move_node_user(node_id, user)
+    if resp.status_code == 200:
+        record_audit_log("划转节点用户", f"Node-{node_id}", f"将节点划转给用户: {user}", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/node/register")
-async def register_node(user: str = Query(...), key: str = Query(...)):
+async def register_node(user: str = Query(...), key: str = Query(...), request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     client = HeadscaleClient()
     resp = await client.register_node(user, key)
+    if resp.status_code == 200:
+        record_audit_log("手动审批设备入网", f"用户: {user}", f"审批机器注册码: {key[:8]}...", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.get("/api/v1/preauthkey")
@@ -471,7 +586,8 @@ async def list_preauth_keys(user: Optional[str] = Query(None)):
     return JSONResponse(status_code=resp.status_code, content=content)
 
 @app.post("/api/v1/preauthkey")
-async def create_preauth_key(data: Dict[str, Any] = Body(...)):
+async def create_preauth_key(data: Dict[str, Any] = Body(...), request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     user = data.get("user")
     if not user:
         raise HTTPException(status_code=400, detail="必须指定归属用户")
@@ -482,16 +598,21 @@ async def create_preauth_key(data: Dict[str, Any] = Body(...)):
     client = HeadscaleClient()
     resp = await client.create_preauth_key(user, reusable, ephemeral, expiration, acl_tags)
     content = resp.json() if resp.content else {}
+    if resp.status_code in (200, 201):
+        record_audit_log("签发 Preauth Key", f"用户: {user}", f"可复用: {reusable}, 临时: {ephemeral}", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=content)
 
 @app.post("/api/v1/preauthkey/expire")
-async def expire_preauth_key(data: Dict[str, Any] = Body(...)):
+async def expire_preauth_key(data: Dict[str, Any] = Body(...), request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     key_id = data.get("id")
     user = data.get("user")
     key = data.get("key")
     client = HeadscaleClient()
     resp = await client.expire_preauth_key(key_id=key_id, user=user, key=key)
     content = resp.json() if resp.content else {}
+    if resp.status_code == 200:
+        record_audit_log("废弃 Preauth Key", f"Key ID: {key_id}", f"用户: {user}", client_ip=client_ip, status="warning")
     return JSONResponse(status_code=resp.status_code, content=content)
 
 @app.get("/api/v1/routes")
@@ -501,15 +622,21 @@ async def list_routes():
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/routes/{route_id}/enable")
-async def enable_route(route_id: int):
+async def enable_route(route_id: int, request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     client = HeadscaleClient()
     resp = await client.enable_route(route_id)
+    if resp.status_code == 200:
+        record_audit_log("启用子网/出口路由", f"Route-{route_id}", "启用路由宣告", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/routes/{route_id}/disable")
-async def disable_route(route_id: int):
+async def disable_route(route_id: int, request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     client = HeadscaleClient()
     resp = await client.disable_route(route_id)
+    if resp.status_code == 200:
+        record_audit_log("禁用子网/出口路由", f"Route-{route_id}", "禁用路由宣告", client_ip=client_ip, status="warning")
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.get("/api/v1/apikey")
@@ -519,17 +646,23 @@ async def list_api_keys():
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/apikey")
-async def create_api_key(data: Dict[str, Any] = Body(...)):
+async def create_api_key(data: Dict[str, Any] = Body(...), request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     expiration = data.get("expiration")
     client = HeadscaleClient()
     resp = await client.create_api_key(expiration)
+    if resp.status_code in (200, 201):
+        record_audit_log("创建 API Key", "系统鉴权", f"有效期: {expiration}", client_ip=client_ip)
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 @app.post("/api/v1/apikey/expire")
-async def expire_api_key(data: Dict[str, Any] = Body(...)):
+async def expire_api_key(data: Dict[str, Any] = Body(...), request: Request = None):
+    client_ip = request.client.host if request and request.client else ""
     prefix = data.get("prefix")
     client = HeadscaleClient()
     resp = await client.expire_api_key(prefix)
+    if resp.status_code == 200:
+        record_audit_log("废弃 API Key", f"Prefix: {prefix}", "废弃鉴权密钥", client_ip=client_ip, status="warning")
     return JSONResponse(status_code=resp.status_code, content=resp.json())
 
 # 静态资源挂载（当前端打包完成后提供 WebUI 界面）

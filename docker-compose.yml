@@ -13,3 +13,12 @@ services:
       - FEISHU_WEBHOOK=
     volumes:
       - ./backend/config.json:/app/backend/config.json
+      - ./backend/node_metadata.json:/app/backend/node_metadata.json
+      - ./backend/audit_logs.json:/app/backend/audit_logs.json
+      - /etc/headscale:/etc/headscale:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8086/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

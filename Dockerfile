@@ -20,4 +20,7 @@ ENV HEADSCALE_URL=http://127.0.0.1:8085
 
 EXPOSE 8086
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:8086/api/v1/health || exit 1
+
 CMD ["python", "main.py"]
