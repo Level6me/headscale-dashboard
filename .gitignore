@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Configuration & Secrets
+backend/config.json
+backend/certs/*
+!backend/certs/.gitkeep
+*.pem
+*.key
+*.crt
+
+# Runtime & Logs
+dashboard.log
+dashboard.pid
+*.log
+
+# Build archives & large binaries
+build_archives/
+*.tar.gz
+*.tar
+*.zip
+
+# System & IDE
+.DS_Store
+.idea/
+.vscode/

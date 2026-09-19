@@ -1,0 +1,2785 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Headscale · 智能网络控制中心</title>
+  
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    /* ==========================================================================
+       Apple Human Interface Guidelines (HIG) Design Tokens & Abit DNA
+       ========================================================================== */
+    :root {
+      --accent: #0a84ff;
+      --accent-hover: #409cff;
+      --accent-subtle: rgba(10, 132, 255, 0.12);
+      
+      --success: #30d158;
+      --success-subtle: rgba(48, 209, 88, 0.14);
+      --warning: #ffd60a;
+      --warning-subtle: rgba(255, 214, 10, 0.14);
+      --danger: #ff453a;
+      --danger-subtle: rgba(255, 69, 58, 0.14);
+
+      /* 圆角规范 */
+      --radius-xs: 8px;
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      --radius-full: 9999px;
+
+      /* 磨砂玻璃滤镜 */
+      --blur-sm: blur(14px) saturate(160%);
+      --blur-md: blur(24px) saturate(180%);
+      --blur-lg: blur(36px) saturate(200%);
+
+      /* 动画缓动 */
+      --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+      --anim-fast: 160ms var(--ease-apple);
+      --anim-normal: 240ms var(--ease-apple);
+    }
+
+    /* Dark Mode (深色模式) */
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #111113;
+      --surface: #1c1c1e;
+      --surface-secondary: #242426;
+      --surface-glass: rgba(28, 28, 30, 0.76);
+      --surface-glass-card: rgba(34, 34, 37, 0.82);
+      --dock-glass: rgba(30, 30, 32, 0.86);
+      --overlay-bg: rgba(0, 0, 0, 0.65);
+      
+      --border: rgba(255, 255, 255, 0.09);
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --border-color: rgba(255, 255, 255, 0.09);
+      --bg-secondary: #242426;
+
+      --accent: #0a84ff;
+      --accent-hover: #409cff;
+      --accent-subtle: rgba(10, 132, 255, 0.12);
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #8e8e93;
+      --text-tertiary: #636366;
+      
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.42);
+      --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.58);
+      --segmented-bg: rgba(120, 120, 128, 0.22);
+    }
+
+    /* Light Mode (浅色模式) */
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --background: #f5f5f7;
+      --surface: #ffffff;
+      --surface-secondary: #f0f0f2;
+      --surface-glass: rgba(255, 255, 255, 0.78);
+      --surface-glass-card: rgba(255, 255, 255, 0.88);
+      --dock-glass: rgba(255, 255, 255, 0.86);
+      --overlay-bg: rgba(0, 0, 0, 0.35);
+
+      --border: rgba(0, 0, 0, 0.08);
+      --border-subtle: rgba(0, 0, 0, 0.04);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --bg-secondary: #f0f0f2;
+
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #a1a1a6;
+
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --accent-subtle: rgba(0, 113, 227, 0.08);
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.12);
+      --segmented-bg: rgba(120, 120, 128, 0.14);
+    }
+
+    /* Auto 模式 */
+    @media (prefers-color-scheme: dark) {
+      :root[data-theme="auto"] {
+        color-scheme: dark;
+        --background: #111113;
+        --surface: #1c1c1e;
+        --surface-secondary: #242426;
+        --surface-glass: rgba(28, 28, 30, 0.76);
+        --surface-glass-card: rgba(34, 34, 37, 0.82);
+        --dock-glass: rgba(30, 30, 32, 0.86);
+        --overlay-bg: rgba(0, 0, 0, 0.65);
+        --border: rgba(255, 255, 255, 0.09);
+        --border-subtle: rgba(255, 255, 255, 0.05);
+        --border-color: rgba(255, 255, 255, 0.09);
+        --bg-secondary: #242426;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --accent-subtle: rgba(10, 132, 255, 0.12);
+        --text-primary: #f5f5f7;
+        --text-secondary: #8e8e93;
+        --text-tertiary: #636366;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+        --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.42);
+        --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.58);
+        --segmented-bg: rgba(120, 120, 128, 0.22);
+      }
+    }
+    @media (prefers-color-scheme: light) {
+      :root[data-theme="auto"] {
+        color-scheme: light;
+        --background: #f5f5f7;
+        --surface: #ffffff;
+        --surface-secondary: #f0f0f2;
+        --surface-glass: rgba(255, 255, 255, 0.78);
+        --surface-glass-card: rgba(255, 255, 255, 0.88);
+        --dock-glass: rgba(255, 255, 255, 0.86);
+        --overlay-bg: rgba(0, 0, 0, 0.35);
+        --border: rgba(0, 0, 0, 0.08);
+        --border-subtle: rgba(0, 0, 0, 0.04);
+        --border-color: rgba(0, 0, 0, 0.08);
+        --bg-secondary: #f0f0f2;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --text-tertiary: #a1a1a6;
+        --accent: #0071e3;
+        --accent-hover: #0077ed;
+        --accent-subtle: rgba(0, 113, 227, 0.08);
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+        --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+        --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.12);
+        --segmented-bg: rgba(120, 120, 128, 0.14);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 优化全局细滚动条 (Apple 极简风格) */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: var(--radius-full);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+
+    /* 行内代码与标签通用样式 */
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 1px 5px;
+      border-radius: 5px;
+      color: var(--accent);
+    }
+
+    input[type="checkbox"], input[type="radio"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+      letter-spacing: -0.015em;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      transition: background-color var(--anim-normal), color var(--anim-normal);
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: calc(14px + env(safe-area-inset-top)) 18px calc(110px + env(safe-area-inset-bottom)) 18px;
+    }
+
+    /* 顶部导航栏 (Navbar) */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 52px;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 17px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .nav-titles {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .status-capsule {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+    .pulse-dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 6px var(--danger);
+    }
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Abit 风格胶囊按钮 (Pill Button) */
+    .pill-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 20px;
+      background: var(--surface-glass);
+      backdrop-filter: var(--blur-sm);
+      -webkit-backdrop-filter: var(--blur-sm);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--anim-fast);
+      white-space: nowrap;
+    }
+    .pill-btn:hover {
+      background: var(--surface-secondary);
+    }
+    .pill-btn:active {
+      transform: scale(0.96);
+      background: var(--surface-secondary);
+    }
+    .pill-btn.accent {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(10, 132, 255, 0.28);
+    }
+    .pill-btn.accent:hover {
+      background: var(--accent-hover);
+    }
+
+    .icon-only-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 18px;
+    }
+
+    /* ==========================================================================
+       Apple 经典分段控制器 (Segmented Control - 解决网络管理混乱的核心)
+       ========================================================================== */
+    .apple-segmented {
+      display: flex;
+      background: var(--segmented-bg);
+      padding: 3px;
+      border-radius: 14px;
+      gap: 3px;
+      margin-bottom: 18px;
+      user-select: none;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .apple-segmented::-webkit-scrollbar {
+      display: none;
+    }
+    .segmented-btn,
+    .segment-btn {
+      flex: 1 0 auto;
+      min-width: 68px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: 11px;
+      cursor: pointer;
+      transition: var(--anim-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .segmented-btn:hover,
+    .segment-btn:hover {
+      color: var(--text-primary);
+    }
+    .segmented-btn:active,
+    .segment-btn:active {
+      transform: scale(0.97);
+    }
+    .segmented-btn.active,
+    .segment-btn.active {
+      background: var(--surface);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* 状态与路由徽标规范 (Route Pill) */
+    .route-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--surface-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      white-space: nowrap;
+      line-height: 1.3;
+    }
+    .route-pill.approved {
+      background: var(--success-subtle);
+      color: var(--success);
+      border-color: transparent;
+    }
+
+    /* 列表行右侧操作按钮容器规范 */
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* 工具与补丁辅助类 */
+    .text-blue-400 {
+      color: var(--accent) !important;
+    }
+
+    /* Inset Grouped 卡片容器 */
+    .section-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      margin-left: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .inset-card {
+      background: var(--surface-glass-card);
+      backdrop-filter: var(--blur-md);
+      -webkit-backdrop-filter: var(--blur-md);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+
+    /* 概览栅格 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    @media (min-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .stat-card {
+      background: var(--surface-glass-card);
+      backdrop-filter: var(--blur-md);
+      -webkit-backdrop-filter: var(--blur-md);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 8px 0 4px 0;
+      color: var(--text-primary);
+    }
+    .stat-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    /* 搜索栏 */
+    .search-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+    }
+    .search-input {
+      border: none;
+      background: transparent;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      width: 100%;
+    }
+
+    /* 设备列表 Cell */
+    .device-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background var(--anim-fast);
+      gap: 12px;
+    }
+    .device-row:last-child {
+      border-bottom: none;
+    }
+    .device-row:active {
+      background: rgba(120, 120, 128, 0.08);
+    }
+    .device-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .device-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .device-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .device-name-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .device-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .device-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    /* IP 药丸微徽标 */
+    .ip-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--anim-fast);
+      width: fit-content;
+    }
+    .ip-capsule:active {
+      transform: scale(0.96);
+      opacity: 0.8;
+    }
+
+    /* ==========================================================================
+       交互式 ACL 规则卡片 (Interactive Rule Builder)
+       ========================================================================== */
+    .rule-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .rule-item:last-child {
+      border-bottom: none;
+    }
+    .rule-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .rule-badge.accept {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+    .rule-flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .flow-tag {
+      padding: 2px 8px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+
+    /* ==========================================================================
+       底部悬浮毛玻璃 Dock (Floating Glass Dock)
+       ========================================================================== */
+    .floating-dock-wrap {
+      position: fixed;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 1000;
+      padding: 0 14px;
+    }
+    .floating-dock {
+      pointer-events: auto;
+      width: 100%;
+      max-width: 480px;
+      height: 62px;
+      background: var(--dock-glass);
+      backdrop-filter: var(--blur-lg);
+      -webkit-backdrop-filter: var(--blur-lg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-evenly;
+      padding: 0 4px;
+    }
+    .dock-tab {
+      border: none;
+      background: transparent;
+      height: 50px;
+      min-width: 48px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--anim-fast);
+      padding: 0 6px;
+    }
+    .dock-tab:active {
+      transform: scale(0.92);
+    }
+    .dock-tab.active {
+      color: var(--accent);
+      background: var(--accent-subtle);
+    }
+    .dock-tab i {
+      font-size: 16px;
+    }
+    .dock-tab span {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    /* ==========================================================================
+       模态弹窗系统 (始终在正中央弹出，带有微缩放弹性动画)
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--overlay-bg);
+      backdrop-filter: var(--blur-sm);
+      -webkit-backdrop-filter: var(--blur-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--anim-normal);
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-card {
+      background: var(--surface-glass-card);
+      backdrop-filter: var(--blur-lg);
+      -webkit-backdrop-filter: var(--blur-lg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 500px;
+      max-height: 86vh;
+      max-height: 86dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transform: scale(0.95);
+      transition: transform var(--anim-normal);
+      box-sizing: border-box;
+    }
+    .modal-card > * {
+      flex-shrink: 0;
+    }
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+    .modal-card .inset-card {
+      margin-bottom: 0;
+    }
+    .modal-card .apple-segmented {
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+
+    .form-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .form-field {
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: var(--anim-fast);
+    }
+    .form-field:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    /* 客户端接入向导组件样式 */
+    .guide-step-card {
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .step-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(14, 165, 233, 0.1);
+      padding: 3px 8px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+    .step-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+    .step-text p {
+      margin: 3px 0 0 0;
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+    .code-box {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    /* Toast 浮动通知 */
+    .apple-toast {
+      position: fixed;
+      top: calc(16px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-glass);
+      backdrop-filter: var(--blur-md);
+      -webkit-backdrop-filter: var(--blur-md);
+      border: 1px solid var(--border);
+      padding: 9px 18px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-md);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      animation: dropIn 0.22s var(--ease-apple);
+    }
+    /* ==========================================================================
+       移动端 / 小屏响应式优化 (@media max-width: 640px)
+       ========================================================================== */
+    @media (max-width: 640px) {
+      .app-viewport {
+        padding: calc(10px + env(safe-area-inset-top)) 12px calc(100px + env(safe-area-inset-bottom)) 12px;
+      }
+      .page-title {
+        font-size: 19px;
+      }
+      .pill-text {
+        display: none;
+      }
+      .pill-btn {
+        padding: 6px 10px;
+      }
+      .modal-overlay {
+        padding: calc(10px + env(safe-area-inset-top, 0px)) 10px calc(24px + env(safe-area-inset-bottom, 20px)) 10px;
+        align-items: center;
+      }
+      .modal-card {
+        padding: 16px 14px calc(24px + env(safe-area-inset-bottom, 10px)) 14px;
+        border-radius: 20px;
+        max-height: calc(85dvh - env(safe-area-inset-bottom, 0px)) !important;
+        max-width: 100% !important;
+      }
+      .guide-grid-2col {
+        grid-template-columns: 1fr !important;
+      }
+      .apple-segmented {
+        padding: 3px;
+        gap: 2px;
+        flex-shrink: 0;
+      }
+      .segmented-btn,
+      .segment-btn {
+        padding: 6px 8px;
+        font-size: 12px;
+        min-width: 56px;
+        flex-shrink: 0;
+      }
+      .stat-value {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app-viewport">
+    
+    <!-- 顶部 Apple 导航栏 -->
+    <header class="navbar">
+      <div class="nav-left">
+        <div class="brand-mark">
+          <i class="fa-solid fa-network-wired"></i>
+        </div>
+        <div class="nav-titles">
+          <div class="status-capsule">
+            <span class="pulse-dot" :class="{'offline': !connected}"></span>
+            <span>{{ connected ? '控制面在线 (8085)' : '连接断开' }}</span>
+          </div>
+          <h1 class="page-title">{{ tabNames[currentTab] || '控制中心' }}</h1>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <!-- Abit 规范主题切换按钮 -->
+        <button class="pill-btn" @click="cycleTheme" :title="'当前主题: ' + themeLabels[themeMode] + ' (点击切换)'">
+          <span>{{ themeIcons[themeMode] }}</span>
+          <span class="pill-text">{{ themeLabels[themeMode] }}</span>
+        </button>
+        <!-- 接入向导 -->
+        <button @click="showGuideModal = true" class="pill-btn" title="客户端接入向导">
+          <i class="fa-solid fa-rocket" style="color: var(--accent);"></i>
+          <span class="pill-text">向导</span>
+        </button>
+        <!-- 系统设置 -->
+        <button @click="showSettingsModal = true" class="pill-btn icon-only-btn" title="系统设置">
+          <i class="fa-solid fa-sliders"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- 1. 总览大屏 (Overview) -->
+    <main v-if="currentTab === 'overview'">
+      <div class="section-header">网络指标</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">总设备数</div>
+          <div class="stat-value">{{ stats.total_nodes }}</div>
+          <div class="stat-sub" style="color: var(--success);">{{ stats.online_nodes }} 在线活跃</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">组织空间</div>
+          <div class="stat-value">{{ stats.total_users }}</div>
+          <div class="stat-sub">多用户隔离</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">激活网段路由</div>
+          <div class="stat-value">{{ stats.total_routes }}</div>
+          <div class="stat-sub" style="color: var(--accent);">{{ stats.exit_nodes }} 个出口网关</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">守护监控</div>
+          <div class="stat-value" style="color: var(--success); font-size: 22px;">健康</div>
+          <div class="stat-sub">掉线飞书预警</div>
+        </div>
+      </div>
+
+      <div class="section-header">快捷运维操作</div>
+      <div class="inset-card" style="padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">一键发起</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button @click="showRegisterNodeModal = true" class="pill-btn accent">
+            <i class="fa-solid fa-plus"></i>
+            <span>登记设备</span>
+          </button>
+          <button @click="openCreateKeyModal" class="pill-btn">
+            <i class="fa-solid fa-key"></i>
+            <span>预授权 Key</span>
+          </button>
+          <button @click="showAddUserModal = true" class="pill-btn">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>新建用户</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="section-header">全网拓扑透视</div>
+      <div class="inset-card" style="padding: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">实时物理节点连通图</span>
+          <button @click="currentTab = 'topology'; renderTopology()" class="pill-btn" style="padding: 4px 10px; font-size: 11px;">
+            全屏星图 &gt;
+          </button>
+        </div>
+        <div id="overview-topology" style="width: 100%; height: 260px;"></div>
+      </div>
+    </main>
+
+    <!-- 2. 设备管理 (Nodes) -->
+    <main v-if="currentTab === 'nodes'">
+      <div class="search-input-wrap">
+        <i class="fa-solid fa-magnifying-glass" style="color: var(--text-tertiary); font-size: 13px;"></i>
+        <input v-model="nodeSearch" type="text" placeholder="搜索设备名称、IP 地址或归属用户..." class="search-input">
+      </div>
+
+      <div class="section-header">已接入设备 ({{ filteredNodes.length }})</div>
+      <div class="inset-card">
+        <div v-for="node in filteredNodes" :key="node.id" class="device-row">
+          <div class="device-left">
+            <div class="device-avatar">
+              <i class="fa-solid fa-laptop"></i>
+            </div>
+            <div class="device-info">
+              <div class="device-name-box">
+                <span class="device-name">{{ node.givenName || node.name || ('Node-' + node.id) }}</span>
+                <span class="pulse-dot" :class="{'offline': !node.online}" :title="node.online ? '在线' : '离线'"></span>
+              </div>
+              <div class="device-meta">
+                <span>{{ (node.user && node.user.name) ? node.user.name : (node.user || 'admin') }}</span>
+                <span>·</span>
+                <span>{{ formatTime(node.lastSeen) }}</span>
+              </div>
+              <!-- IP 药丸微徽标 -->
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                <div v-for="ip in node.ipAddresses" :key="ip" @click="copyText(ip)" class="ip-capsule" title="轻触复制 IP">
+                  <span>{{ ip }}</span>
+                  <i class="fa-regular fa-copy" style="font-size: 10px; opacity: 0.7;"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button @click="openRenameNodeModal(node)" class="pill-btn icon-only-btn" title="重命名">
+              <i class="fa-solid fa-pen" style="font-size: 12px;"></i>
+            </button>
+            <button @click="deleteNode(node)" class="pill-btn icon-only-btn" style="color: var(--danger);" title="注销">
+              <i class="fa-solid fa-trash-can" style="font-size: 12px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="filteredNodes.length === 0" style="padding: 36px 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">
+          暂无入网设备，可通过右上角【向导】开始连接
+        </div>
+      </div>
+    </main>
+
+    <!-- 3. 动态拓扑星图 (Topology) -->
+    <main v-if="currentTab === 'topology'">
+      <div class="section-header">Mesh 网络拓扑</div>
+      <div class="inset-card" style="padding: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 12px; color: var(--text-secondary);">WireGuard P2P 互联与中心控制信道</span>
+          <button @click="renderTopology" class="pill-btn" style="font-size: 12px;">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>重新排布</span>
+          </button>
+        </div>
+        <div id="full-topology" style="width: 100%; height: 520px; border-radius: 14px;"></div>
+      </div>
+    </main>
+
+    <!-- 4. 延迟探测矩阵 (Latency) -->
+    <main v-if="currentTab === 'latency'">
+      <div class="section-header">节点互联测速丢包矩阵 (RTT)</div>
+      <div class="inset-card" style="padding: 16px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; font-family: monospace;">
+          <thead>
+            <tr>
+              <th style="padding: 10px; border: 1px solid var(--border); color: var(--text-secondary); text-align: left;">源 \ 目标</th>
+              <th v-for="name in latencyData.node_names" :key="name" style="padding: 10px; border: 1px solid var(--border); color: var(--text-primary);">
+                {{ name }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, rIdx) in latencyData.matrix" :key="rIdx">
+              <td style="padding: 10px; border: 1px solid var(--border); text-align: left; font-weight: 700; color: var(--text-primary);">
+                {{ latencyData.node_names[rIdx] }}
+              </td>
+              <td v-for="(cell, cIdx) in row" :key="cIdx" style="padding: 10px; border: 1px solid var(--border);" :style="getCellStyle(cell)">
+                <span v-if="cell.status === 'self'" style="color: var(--text-tertiary);">-</span>
+                <span v-else-if="cell.status === 'unreachable'" style="color: var(--danger); font-weight: bold;">不可达</span>
+                <span v-else :style="{ color: getLatencyTextColor(cell.latency), fontWeight: 'bold' }">{{ cell.latency }}ms</span>
+              </td>
+            </tr>
+            <tr v-if="!latencyData.node_names || latencyData.node_names.length === 0">
+              <td colspan="4" style="padding: 24px; color: var(--text-secondary);">暂无可测速节点，请先接入至少两台设备。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- 5. 网络管理 (Network) - 彻底重构：采用 Apple Inset 分段控制器！ -->
+    <main v-if="currentTab === 'network'">
+      <!-- Apple 标志性分段选择器 -->
+      <div class="apple-segmented">
+        <button class="segmented-btn" :class="{'active': networkSubTab === 'users'}" @click="networkSubTab = 'users'">
+          <i class="fa-regular fa-user"></i>
+          <span>组织空间 ({{ users.length }})</span>
+        </button>
+        <button class="segmented-btn" :class="{'active': networkSubTab === 'keys'}" @click="networkSubTab = 'keys'">
+          <i class="fa-solid fa-key"></i>
+          <span>预授权 Key ({{ preauthKeys.length }})</span>
+        </button>
+        <button class="segmented-btn" :class="{'active': networkSubTab === 'routes'}" @click="networkSubTab = 'routes'">
+          <i class="fa-solid fa-route"></i>
+          <span>子网路由 ({{ routes.length }})</span>
+        </button>
+      </div>
+
+      <!-- 分段 A: 组织命名空间 -->
+      <div v-if="networkSubTab === 'users'">
+        <div class="section-header">
+          <span>命名空间列表</span>
+          <button @click="showAddUserModal = true" class="pill-btn" style="padding: 4px 10px; font-size: 11px;">
+            <i class="fa-solid fa-plus"></i> 新建空间
+          </button>
+        </div>
+        <div class="inset-card">
+          <div v-for="user in users" :key="user.id || user.name" class="device-row">
+            <div class="device-left">
+              <div class="device-avatar" style="color: #a855f7;">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div class="device-info">
+                <span class="device-name">
+                  {{ user.name }}
+                  <span v-if="user.id" style="font-size: 11px; color: var(--text-tertiary); font-weight: 500; font-family: monospace;">(ID: {{ user.id }})</span>
+                </span>
+                <span class="device-meta">创建时间: {{ formatTime(user.createdAt) }}</span>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button @click="deleteUser(user)" class="pill-btn icon-only-btn" style="color: var(--danger);" title="删除空间">
+                <i class="fa-solid fa-trash-can" style="font-size: 12px;"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分段 B: 预授权密钥 -->
+      <div v-if="networkSubTab === 'keys'">
+        <div class="section-header">
+          <span>全网有效接入密钥 ({{ preauthKeys.length }})</span>
+          <button @click="openCreateKeyModal" class="pill-btn accent" style="padding: 4px 10px; font-size: 11px;">
+            <i class="fa-solid fa-plus"></i> 生成 Key
+          </button>
+        </div>
+        <div class="inset-card">
+          <div v-for="key in preauthKeys" :key="key.id || key.key" class="device-row">
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-family: monospace; font-size: 12px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;">
+                {{ key.key || key.id }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <span>归属: <strong style="color: var(--text-primary);">{{ key.user?.name || key.user || '默认空间' }}</strong></span>
+                <span>·</span>
+                <span>有效期: {{ formatKeyExpiration(key.expiration) }}</span>
+                <span class="route-pill" :class="key.reusable ? 'approved' : ''">{{ key.reusable ? '允许多台复用' : '单次有效' }}</span>
+                <span v-if="key.ephemeral" class="route-pill">临时节点</span>
+                <span v-if="isKeyExpired(key)" class="route-pill" style="color: var(--danger); background: rgba(239, 68, 68, 0.12);">已失效</span>
+                <span v-else class="route-pill approved">有效</span>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button @click="copyText(key.key || key.id)" class="pill-btn icon-only-btn" title="复制 Key">
+                <i class="fa-regular fa-copy" style="font-size: 12px;"></i>
+              </button>
+              <button v-if="!isKeyExpired(key)" @click="expireKey(key)" class="pill-btn icon-only-btn" style="color: var(--danger);" title="立即作废">
+                <i class="fa-solid fa-ban" style="font-size: 12px;"></i>
+              </button>
+            </div>
+          </div>
+          <div v-if="preauthKeys.length === 0" style="padding: 32px 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">
+            当前暂无有效 Pre-Auth Key，点击右上角【生成 Key】即可快速签发
+          </div>
+        </div>
+      </div>
+
+      <!-- 分段 C: 子网路由与网关 -->
+      <div v-if="networkSubTab === 'routes'">
+        <div class="section-header">
+          <span>子网网段与出口网关</span>
+        </div>
+        <div class="inset-card">
+          <div v-for="r in routes" :key="r.id" class="device-row">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-family: monospace; font-size: 14px; font-weight: 700; color: var(--success);">{{ r.prefix }}</span>
+                <span v-if="r.prefix === '0.0.0.0/0' || r.prefix === '::/0'" class="rule-badge accept" style="font-size: 9px;">全局出口 (Exit Node)</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                节点: {{ (r.node && r.node.givenName) || r.nodeId || '未知' }} · {{ r.enabled ? '已激活' : '等待审批' }}
+              </div>
+            </div>
+            <button @click="toggleRoute(r.id, !r.enabled)" class="pill-btn" :class="{'accent': !r.enabled}">
+              {{ r.enabled ? '禁用' : '批准生效' }}
+            </button>
+          </div>
+          <div v-if="routes.length === 0" style="padding: 32px 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">
+            当前无节点宣告子网路由
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 6. 交互式安全策略 (ACL - 彻底告别代码编辑，卡片式交互交互) -->
+    <main v-if="currentTab === 'acl'">
+      <div class="section-header">
+        <span>零信任访问控制规则 ({{ parsedRules.length }})</span>
+        <button @click="showAddRuleModal = true" class="pill-btn accent" style="padding: 4px 10px; font-size: 11px;">
+          <i class="fa-solid fa-plus"></i> 添加安全规则
+        </button>
+      </div>
+
+      <div class="inset-card">
+        <div v-for="(rule, idx) in parsedRules" :key="idx" class="rule-item">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="rule-badge accept">允许访问 (ACCEPT)</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">规则 #{{ idx + 1 }}</span>
+            </div>
+            <div class="rule-flow">
+              <span style="color: var(--text-secondary);">来源:</span>
+              <span class="flow-tag">{{ rule.src.join(', ') }}</span>
+              <i class="fa-solid fa-arrow-right" style="font-size: 11px; color: var(--text-tertiary);"></i>
+              <span style="color: var(--text-secondary);">目标:</span>
+              <span class="flow-tag">{{ rule.dst.join(', ') }}</span>
+            </div>
+          </div>
+          <button @click="deleteAclRule(idx)" class="pill-btn icon-only-btn" style="color: var(--danger);" title="删除规则">
+            <i class="fa-solid fa-trash-can" style="font-size: 12px;"></i>
+          </button>
+        </div>
+
+        <div v-if="parsedRules.length === 0" style="padding: 32px 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">
+          当前默认放行所有内网互访
+        </div>
+      </div>
+
+      <!-- 高级源码展开折叠 (仅供进阶需要查看，默认优雅折叠) -->
+      <div style="margin-top: 14px;">
+        <button @click="showAdvancedAcl = !showAdvancedAcl" class="pill-btn" style="font-size: 11px;">
+          <i class="fa-solid" :class="showAdvancedAcl ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+          <span>{{ showAdvancedAcl ? '收起 HuJSON 策略源码' : '展开高级 HuJSON 源码' }}</span>
+        </button>
+
+        <div v-if="showAdvancedAcl" class="inset-card" style="margin-top: 10px; padding: 14px;">
+          <textarea v-model="aclRawText" rows="12" class="form-field" style="width: 100%; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.5; color: var(--accent); resize: vertical;"></textarea>
+          <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+            <button @click="saveRawAcl" class="pill-btn accent" style="font-size: 11px;">保存源码修改</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 底部悬浮毛玻璃 Dock (6 项核心业务视图) -->
+    <div class="floating-dock-wrap">
+      <nav class="floating-dock">
+        <button @click="currentTab = 'overview'; renderOverviewTopology()" class="dock-tab" :class="{'active': currentTab === 'overview'}">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>总览</span>
+        </button>
+
+        <button @click="currentTab = 'nodes'" class="dock-tab" :class="{'active': currentTab === 'nodes'}">
+          <i class="fa-solid fa-laptop"></i>
+          <span>设备</span>
+        </button>
+
+        <button @click="currentTab = 'topology'; renderTopology()" class="dock-tab" :class="{'active': currentTab === 'topology'}">
+          <i class="fa-solid fa-circle-nodes"></i>
+          <span>星图</span>
+        </button>
+
+        <button @click="currentTab = 'latency'" class="dock-tab" :class="{'active': currentTab === 'latency'}">
+          <i class="fa-solid fa-gauge-high"></i>
+          <span>时延</span>
+        </button>
+
+        <button @click="currentTab = 'network'" class="dock-tab" :class="{'active': currentTab === 'network'}">
+          <i class="fa-solid fa-network-wired"></i>
+          <span>网络</span>
+        </button>
+
+        <button @click="currentTab = 'acl'" class="dock-tab" :class="{'active': currentTab === 'acl'}">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>安全</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- 模态弹窗：系统设置 (正中间弹出，支持基础、域名与SSL证书分段管理) -->
+    <div class="modal-overlay" :class="{'active': showSettingsModal}" @click.self="showSettingsModal = false">
+      <div class="modal-card" style="max-width: 560px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-sliders" style="color: var(--accent);"></i>
+            <span>系统与网络设置</span>
+          </h3>
+          <button @click="showSettingsModal = false" class="pill-btn icon-only-btn" style="border: none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- 分段选择器：基础连接 / 域名配置 / SSL 证书 -->
+        <div class="apple-segmented" style="width: 100%;">
+          <button @click="settingsSubTab = 'general'" class="segmented-btn" :class="{'active': settingsSubTab === 'general'}">
+            <i class="fa-solid fa-gear"></i> 基础连接
+          </button>
+          <button @click="settingsSubTab = 'domain'; fetchDomainConfig()" class="segmented-btn" :class="{'active': settingsSubTab === 'domain'}">
+            <i class="fa-solid fa-globe"></i> 域名设置
+          </button>
+          <button @click="settingsSubTab = 'cert'; fetchCertInfo()" class="segmented-btn" :class="{'active': settingsSubTab === 'cert'}">
+            <i class="fa-solid fa-certificate"></i> 证书导入
+          </button>
+        </div>
+
+        <!-- 分段 A: 基础连接与告警 -->
+        <div v-if="settingsSubTab === 'general'" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-item">
+            <label class="form-label">Headscale 实例地址</label>
+            <input v-model="settingForm.headscale_url" type="text" class="form-field" placeholder="http://127.0.0.1:8085">
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">API 鉴权密钥 (API Key)</label>
+            <input v-model="settingForm.api_key" type="password" placeholder="留空保持原密钥不变" class="form-field" style="font-family: monospace; font-size: 12px;">
+            <div v-if="config.has_api_key" style="font-size: 11px; color: var(--success);">已就绪: {{ config.api_key_masked }}</div>
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">飞书机器人 Webhook</label>
+            <input v-model="settingForm.feishu_webhook" type="text" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." class="form-field">
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <button @click="triggerTestAlert" class="pill-btn" style="flex: 1; justify-content: center;">
+              <i class="fa-solid fa-bell"></i> 测试飞书推送
+            </button>
+            <button @click="testCurrentConnection" class="pill-btn" style="flex: 1; justify-content: center;">
+              <i class="fa-solid fa-link"></i> 连通性测试
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button @click="showSettingsModal = false" class="pill-btn">取消</button>
+            <button @click="saveSettings" class="pill-btn accent">保存设置</button>
+          </div>
+        </div>
+
+        <!-- 分段 B: 域名设置 (Domain Settings) -->
+        <div v-if="settingsSubTab === 'domain'" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="inset-card" style="padding: 12px 14px; background: var(--surface-secondary);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>公网域名与核心 Server URL 说明</span>
+            </div>
+            <p style="font-size: 11px; color: var(--text-secondary); margin: 4px 0 0 0; line-height: 1.5;">
+              客户端通过域名连接 Headscale 时，Headscale 必须使用该公网域名作为自身 <code>server_url</code>。开启自动同步后，系统将自动把新域名写入 <code>/etc/headscale/config.yaml</code>。
+            </p>
+          </div>
+
+          <div class="form-item">
+            <label class="form-label">公网访问域名 (带协议)</label>
+            <input v-model="domainForm.server_url" type="text" placeholder="例如: https://hs.yourdomain.com" class="form-field" style="font-family: monospace; font-size: 12px;">
+          </div>
+
+          <div class="inset-card" style="padding: 10px 12px; font-size: 11px; color: var(--text-secondary);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>Headscale 宿主机配置：</span>
+              <code style="color: var(--text-primary);">{{ domainConfig.headscale_config?.exists ? domainConfig.headscale_config.path : '独立运行模式 / 远程服务' }}</code>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>核心服务 Server URL：</span>
+              <strong :style="{color: isDomainSynced ? 'var(--success)' : (domainConfig.headscale_config?.exists ? 'var(--danger)' : 'var(--accent)')}">
+                {{ domainConfig.headscale_config?.server_url || domainConfig.public_domain || domainConfig.headscale_url || '未检测到或未设置' }}
+              </strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>同步状态：</span>
+              <span class="route-pill" :class="isDomainSynced || !domainConfig.headscale_config?.exists ? 'approved' : ''">
+                {{ isDomainSynced ? '已完全同步' : (domainConfig.headscale_config?.exists ? '待同步至 Headscale' : '已配置公网地址') }}
+              </span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+              <input v-model="domainForm.sync_to_headscale" type="checkbox">
+              <span>自动将域名同步写入 <code>/etc/headscale/config.yaml</code></span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+              <input v-model="domainForm.restart_service" type="checkbox">
+              <span>保存后自动重载/重启 Headscale 服务以立即生效</span>
+            </label>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button @click="showSettingsModal = false" class="pill-btn">取消</button>
+            <button @click="saveDomainSettings" class="pill-btn accent">
+              <i class="fa-solid fa-floppy-disk"></i> 保存并同步域名
+            </button>
+          </div>
+        </div>
+
+        <!-- 分段 C: SSL 证书导入与管理 (Certificate Import & Management) -->
+        <div v-if="settingsSubTab === 'cert'" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- 当前已装证书卡片 -->
+          <div v-if="installedCertInfo" class="guide-step-card" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="step-badge" style="background: rgba(34, 197, 94, 0.12); color: var(--success);">
+                <i class="fa-solid fa-shield-halved"></i> 当前已部署有效证书
+              </span>
+              <span style="font-size: 11px; font-weight: 600;" :style="{color: installedCertInfo.is_expired ? 'var(--danger)' : 'var(--success)'}">
+                {{ installedCertInfo.is_expired ? '已过期' : '剩余 ' + installedCertInfo.days_remaining + ' 天' }}
+              </span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; margin-top: 6px;">
+              <div><strong>主域名 (CN):</strong> <span style="font-family: monospace;">{{ installedCertInfo.subject_cn }}</span></div>
+              <div><strong>颁发机构:</strong> {{ installedCertInfo.issuer }}</div>
+              <div><strong>过期时间:</strong> {{ installedCertInfo.not_after }}</div>
+              <div><strong>支持域名:</strong> <span style="font-family: monospace;">{{ (installedCertInfo.sans || []).join(', ') }}</span></div>
+            </div>
+          </div>
+          <div v-else class="guide-step-card" style="padding: 10px 14px; color: var(--text-secondary); font-size: 11px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-circle-info" style="color: var(--accent);"></i>
+            <span>当前未检测到已部署的独立 SSL 证书，支持粘贴或上传 <code>fullchain.pem</code> 与 <code>privkey.pem</code> 进行部署。</span>
+          </div>
+
+          <!-- 导入新证书表单 -->
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-import" style="color: var(--accent);"></i>
+            <span>导入并配置新 SSL 证书</span>
+          </div>
+
+          <div class="form-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label">证书公钥 (fullchain.pem / cert.crt)</label>
+              <label class="pill-btn" style="padding: 2px 8px; font-size: 10px; cursor: pointer;">
+                <i class="fa-solid fa-upload"></i> 选择证书文件
+                <input type="file" @change="onCertFileChange" accept=".pem,.crt,.cer" style="display: none;">
+              </label>
+            </div>
+            <textarea v-model="certForm.cert_pem" placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----" class="form-field" rows="4" style="font-family: monospace; font-size: 11px; resize: vertical;"></textarea>
+          </div>
+
+          <div class="form-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label">证书私钥 (privkey.pem / server.key)</label>
+              <label class="pill-btn" style="padding: 2px 8px; font-size: 10px; cursor: pointer;">
+                <i class="fa-solid fa-upload"></i> 选择私钥文件
+                <input type="file" @change="onKeyFileChange" accept=".pem,.key" style="display: none;">
+              </label>
+            </div>
+            <textarea v-model="certForm.key_pem" placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----" class="form-field" rows="3" style="font-family: monospace; font-size: 11px; resize: vertical;"></textarea>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input v-model="certForm.apply_to_headscale" type="checkbox">
+              <span>导入后自动配置至 Headscale TLS 证书路径</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input v-model="certForm.restart_service" type="checkbox">
+              <span>保存后自动重载/重启 Headscale 服务以立即加载证书</span>
+            </label>
+          </div>
+
+          <!-- 预检结果展示 -->
+          <div v-if="certValidation" class="inset-card" style="padding: 10px 12px; font-size: 11px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span><strong>域名 (CN):</strong> {{ certValidation.subject_cn }}</span>
+              <span :style="{color: certValidation.key_match ? 'var(--success)' : 'var(--danger)'}">
+                <i :class="certValidation.key_match ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+                {{ certValidation.key_match ? '公私钥匹配成功' : '私钥不匹配' }}
+              </span>
+            </div>
+            <div style="margin-top: 4px; color: var(--text-secondary);">
+              <span>有效至: {{ certValidation.not_after }} ({{ certValidation.days_remaining }} 天)</span>
+              <span style="margin-left: 8px;">SANs: {{ (certValidation.sans || []).join(', ') }}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button @click="validateCertInput" class="pill-btn" style="flex: 1; justify-content: center;">
+              <i class="fa-solid fa-stethoscope"></i> 校验公私钥匹配性
+            </button>
+            <button @click="importCertSubmit" class="pill-btn accent" style="flex: 1; justify-content: center;">
+              <i class="fa-solid fa-cloud-arrow-up"></i> 导入并部署证书
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 模态弹窗：客户端接入向导 (正中间弹出，支持动态反代域名与Key拼接) -->
+    <div class="modal-overlay" :class="{'active': showGuideModal}" @click.self="showGuideModal = false">
+      <div class="modal-card" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-compass" style="color: var(--accent);"></i>
+              <span>多平台客户端接入指南</span>
+            </h3>
+            <p style="font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 0;">
+              支持自定义反代域名、预授权 Key 联动与 iOS/Android/桌面端分步教程
+            </p>
+          </div>
+          <button @click="showGuideModal = false" class="pill-btn icon-only-btn" style="border: none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- 1. 参数定制栏 (实时影响下方全部平台教程与命令) -->
+        <div class="inset-card" style="padding: 12px; background: var(--surface-secondary); display: flex; flex-direction: column; gap: 10px;">
+          <div class="guide-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-item">
+              <label class="form-label" style="font-size: 10px;">服务器地址 (支持反代域名)</label>
+              <input v-model="guideServerUrl" type="text" placeholder="例如: https://hss.abab.pw" class="form-field" style="font-size: 11px; font-family: monospace; padding: 7px 10px;">
+            </div>
+            <div class="form-item">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="form-label" style="font-size: 10px;">预授权 Key (选填)</label>
+                <span @click="openCreateKeyModal" style="font-size: 10px; color: var(--accent); cursor: pointer; font-weight: 600;">+ 签发新 Key</span>
+              </div>
+              <select v-model="guideSelectedKey" class="form-field" style="font-size: 11px; padding: 7px 10px;">
+                <option value="">不使用 (网页授权/手动审批)</option>
+                <option v-for="k in activePreauthKeys" :key="k.key || k.id" :value="k.key || k.id">
+                  {{ (k.key || k.id).slice(0, 16) }}... ({{ k.user?.name || k.user || '空间' }})
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary);">
+            <span>入网模式：<strong style="color: var(--accent);">{{ guideSelectedKey ? '免密静默自动入网' : '网页授权/审批入网' }}</strong></span>
+            <button v-if="guideServerUrl && guideServerUrl !== config.headscale_url" @click="guideServerUrl = config.headscale_url" class="pill-btn" style="padding: 2px 8px; font-size: 10px;">
+              重置为当前实例地址
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. 平台分段控制器 -->
+        <div class="apple-segmented" style="width: 100%;">
+          <button @click="guidePlatform = 'ios'" class="segmented-btn" :class="{'active': guidePlatform === 'ios'}">
+            <i class="fa-brands fa-apple"></i> iOS / iPad
+          </button>
+          <button @click="guidePlatform = 'android'" class="segmented-btn" :class="{'active': guidePlatform === 'android'}">
+            <i class="fa-brands fa-android"></i> Android
+          </button>
+          <button @click="guidePlatform = 'windows'" class="segmented-btn" :class="{'active': guidePlatform === 'windows'}">
+            <i class="fa-brands fa-windows"></i> Windows
+          </button>
+          <button @click="guidePlatform = 'macos'" class="segmented-btn" :class="{'active': guidePlatform === 'macos'}">
+            <i class="fa-brands fa-apple"></i> macOS
+          </button>
+          <button @click="guidePlatform = 'linux'" class="segmented-btn" :class="{'active': guidePlatform === 'linux'}">
+            <i class="fa-brands fa-linux"></i> Linux
+          </button>
+        </div>
+
+        <!-- 3. iOS 分步教程 -->
+        <div v-if="guidePlatform === 'ios'" class="guide-step-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="step-badge">iOS / iPadOS 接入指南</div>
+            <span v-if="cleanServerUrl.startsWith('http://')" style="font-size: 11px; color: var(--danger); font-weight: 600;">
+              <i class="fa-solid fa-triangle-exclamation"></i> 必须使用 HTTPS
+            </span>
+          </div>
+
+          <div v-if="cleanServerUrl.startsWith('http://')" style="padding: 8px 12px; background: var(--warning-subtle); border: 1px solid rgba(255, 214, 10, 0.25); border-radius: 10px; font-size: 11px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-triangle-exclamation" style="color: var(--warning);"></i>
+            <span>iOS 系统底层强制要求 HTTPS 加密与合法证书，HTTP 地址将导致客户端重试失败。</span>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              <strong>下载安装 Tailscale 客户端</strong>
+              <p>前往 App Store 搜索并下载官方 <strong>Tailscale</strong> 应用。</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              <strong>激活自定义服务器设置（隐藏入口）</strong>
+              <p>打开 Tailscale App，在登录界面：</p>
+              <p>• <strong>新版客户端</strong>：点击右上角三点菜单 <code>...</code> 或头像，选择 <strong>「Use custom login server」</strong> 或 <strong>「Alternate server」</strong>；</p>
+              <p>• <strong>经典版客户端</strong>：在登录主屏连续<strong>轻按右上角图标或空白处 5 次</strong>触发震动提示。</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-text">
+              <strong>输入反向代理服务器域名</strong>
+              <p>填入完整的反代服务地址（<strong>必须带 https:// 前缀</strong>）：</p>
+              <div style="display: flex; gap: 6px; align-items: center; margin-top: 6px;">
+                <code class="code-box" style="flex: 1;">{{ cleanServerUrl }}</code>
+                <button @click="copyText(cleanServerUrl)" class="pill-btn" style="padding: 4px 10px; font-size: 11px;">
+                  <i class="fa-regular fa-copy"></i> 复制地址
+                </button>
+              </div>
+              <p style="margin-top: 4px; color: var(--accent);">保存后若弹出提示，请点击「Reopen」重启客户端应用。</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-num">4</div>
+            <div class="step-text">
+              <strong>登录与入网验证</strong>
+              <p>点击「Log in」，Safari 将自动打开授权页：</p>
+              <p v-if="guideSelectedKey">• 已配置预授权 Key：可将此 Key 填入认证输入框直接入网；</p>
+              <p v-else>• 若提示机器注册码，可直接在控制台顶部点击 <strong>【登记设备】</strong> 粘贴机器码完成入网审批！</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Android 教程 -->
+        <div v-if="guidePlatform === 'android'" class="guide-step-card">
+          <div class="step-badge">Android 接入指南</div>
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              <strong>安装官方客户端</strong>
+              <p>前往 Google Play、F-Droid 或 GitHub 官方仓库下载安装 Tailscale APK。</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              <strong>修改登录服务器地址</strong>
+              <p>打开应用，点击右上角 <code>⋮</code> 菜单，选择 <strong>「Change server」</strong>。</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-text">
+              <strong>填入服务地址并保存</strong>
+              <div style="display: flex; gap: 6px; align-items: center; margin-top: 6px;">
+                <code class="code-box" style="flex: 1;">{{ cleanServerUrl }}</code>
+                <button @click="copyText(cleanServerUrl)" class="pill-btn" style="padding: 4px 10px; font-size: 11px;">
+                  <i class="fa-regular fa-copy"></i> 复制地址
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">4</div>
+            <div class="step-text">
+              <strong>登录入网授权</strong>
+              <p>返回主界面点击「Log in」：</p>
+              <p v-if="guideSelectedKey">• 已选预授权 Key：粘贴填入 Key 即可静默授权入网；</p>
+              <p v-else>• 若提示机器注册码，可在控制台顶部点击 <strong>【登记设备】</strong> 输入审批。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Windows 教程 -->
+        <div v-if="guidePlatform === 'windows'" class="guide-step-card">
+          <div class="step-badge">Windows 接入指南</div>
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              <strong>PowerShell 一键命令（推荐）</strong>
+              <p>以管理员身份打开 PowerShell，粘贴运行：</p>
+              <div style="position: relative; margin-top: 6px;">
+                <pre class="code-box" style="margin: 0; padding: 10px 85px 10px 10px; font-size: 11px; white-space: pre-wrap;">{{ windowsCommand }}</pre>
+                <button @click="copyText(windowsCommand)" class="pill-btn accent" style="position: absolute; right: 8px; top: 8px; padding: 2px 8px; font-size: 11px;">
+                  <i class="fa-regular fa-copy"></i> 复制命令
+                </button>
+              </div>
+              <p style="margin-top: 4px; font-size: 11px; color: var(--text-tertiary);">提示：若 PowerShell 提示找不到 tailscale，可运行默认路径 <code>& "C:\Program Files\Tailscale\tailscale.exe"</code>。</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              <strong>托盘图形界面方式</strong>
+              <p>按住键盘 <strong>Shift</strong> 键同时右键点击右下角 Tailscale 托盘图标，选择 <strong>「Custom Login Server」</strong>，填入 <code>{{ cleanServerUrl }}</code>。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. macOS 教程 -->
+        <div v-if="guidePlatform === 'macos'" class="guide-step-card">
+          <div class="step-badge">macOS 接入指南</div>
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              <strong>终端一键启动（推荐）</strong>
+              <div style="position: relative; margin-top: 6px;">
+                <pre class="code-box" style="margin: 0; padding: 10px 85px 10px 10px; font-size: 11px; white-space: pre-wrap;">{{ macosCommand }}</pre>
+                <button @click="copyText(macosCommand)" class="pill-btn accent" style="position: absolute; right: 8px; top: 8px; padding: 2px 8px; font-size: 11px;">
+                  <i class="fa-regular fa-copy"></i> 复制命令
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              <strong>状态栏 App 方式</strong>
+              <p>按住 <strong>Option (⌥)</strong> 键，点击 macOS 顶部菜单栏的 Tailscale 图标，选择 <strong>「Custom Login Server」</strong> 填入 <code>{{ cleanServerUrl }}</code>。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Linux 教程 -->
+        <div v-if="guidePlatform === 'linux'" class="guide-step-card">
+          <div class="step-badge">Linux 终端接入</div>
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              <strong>安装官方客户端（若尚未安装）</strong>
+              <div style="position: relative; margin-top: 6px;">
+                <pre class="code-box" style="margin: 0; padding: 10px 85px 10px 10px; font-size: 11px; white-space: pre-wrap;">curl -fsSL https://tailscale.com/install.sh | sh</pre>
+                <button @click="copyText('curl -fsSL https://tailscale.com/install.sh | sh')" class="pill-btn accent" style="position: absolute; right: 8px; top: 8px; padding: 2px 8px; font-size: 11px;">
+                  <i class="fa-regular fa-copy"></i> 复制命令
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              <strong>一键启动入网</strong>
+              <div style="position: relative; margin-top: 6px;">
+                <pre class="code-box" style="margin: 0; padding: 10px 85px 10px 10px; font-size: 11px; white-space: pre-wrap;">{{ linuxCommand }}</pre>
+                <button @click="copyText(linuxCommand)" class="pill-btn accent" style="position: absolute; right: 8px; top: 8px; padding: 2px 8px; font-size: 11px;">
+                  <i class="fa-regular fa-copy"></i> 复制命令
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 反代与 HTTPS 避坑指南 -->
+        <div class="inset-card" style="padding: 10px 14px; border-left: 3px solid var(--warning); background: var(--warning-subtle);">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-primary);">
+            <i class="fa-solid fa-triangle-exclamation" style="color: var(--warning);"></i>
+            <span>域名反代 8085 端口避坑 Checklist (必须满足)</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 5px; line-height: 1.6;">
+            <div>① <strong>开启 WebSocket 支持</strong>：反向代理配置中务必启用 Upgrade 与 Connection 头支持 WebSocket；</div>
+            <div>② <strong>开启可信 HTTPS 证书</strong>：iOS / macOS 强制要求 HTTPS 且必须有可信 SSL 证书；</div>
+            <div>③ <strong>最关键：同步 Headscale server_url</strong>：服务端必须将 <code>server_url</code> 修改为该公网域名（例如 <code>https://hs.yourdomain.com</code>），可在右上角【系统设置】->【域名设置】中一键保存并同步。</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+          <button @click="showGuideModal = false" class="pill-btn accent" style="padding: 6px 18px;">完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态弹窗：交互式添加安全策略规则 (正中间弹出) -->
+    <div class="modal-overlay" :class="{'active': showAddRuleModal}" @click.self="showAddRuleModal = false">
+      <div class="modal-card">
+        <h3 style="font-size: 16px; font-weight: 700;">添加零信任访问策略</h3>
+        
+        <div class="form-item">
+          <label class="form-label">策略动作</label>
+          <select v-model="newRule.action" class="form-field">
+            <option value="accept">允许访问 (ACCEPT)</option>
+          </select>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">来源设备 / 角色</label>
+          <select v-model="newRule.srcType" class="form-field">
+            <option value="*">所有设备 (*)</option>
+            <option v-for="u in users" :key="u.name" :value="u.name">指定用户 ({{ u.name }})</option>
+          </select>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">目标网络与端口范围</label>
+          <select v-model="newRule.dstPreset" class="form-field">
+            <option value="*:*">放行所有端口 (*:*)</option>
+            <option value="*:80,443">仅允许 Web 流量 (*:80,443)</option>
+            <option value="*:22">仅允许 SSH 远程运维 (*:22)</option>
+            <option value="custom">自定义目标与端口</option>
+          </select>
+        </div>
+
+        <div v-if="newRule.dstPreset === 'custom'" class="form-item">
+          <label class="form-label">自定义目标 (格式: IP:端口 或 *:端口)</label>
+          <input v-model="newRule.customDst" type="text" placeholder="例如: 10.8.0.0/24:3306" class="form-field" style="font-family: monospace;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button @click="showAddRuleModal = false" class="pill-btn">取消</button>
+          <button @click="submitAddRule" class="pill-btn accent">添加并生效</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态弹窗：登记新设备 (正中间弹出) -->
+    <div class="modal-overlay" :class="{'active': showRegisterNodeModal}" @click.self="showRegisterNodeModal = false">
+      <div class="modal-card">
+        <h3 style="font-size: 16px; font-weight: 700;">登记新设备</h3>
+        <p style="font-size: 12px; color: var(--text-secondary);">填入客户端终端运行后输出的机器码：</p>
+        
+        <div class="form-item">
+          <label class="form-label">归属空间</label>
+          <select v-model="registerForm.user" class="form-field">
+            <option v-for="u in users" :key="u.name" :value="u.name">{{ u.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">Machine Key</label>
+          <input v-model="registerForm.key" type="text" placeholder="mkey:..." class="form-field" style="font-family: monospace; font-size: 12px;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button @click="showRegisterNodeModal = false" class="pill-btn">取消</button>
+          <button @click="submitRegisterNode" class="pill-btn accent">审批入网</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态弹窗：生成 Pre-Auth Key (正中间弹出) -->
+    <div class="modal-overlay" :class="{'active': showCreateKeyModal}" @click.self="showCreateKeyModal = false">
+      <div class="modal-card">
+        <h3 style="font-size: 16px; font-weight: 700;">生成预授权密钥</h3>
+        
+        <div class="form-item">
+          <label class="form-label">归属空间 / 用户</label>
+          <select v-model="keyForm.user" class="form-field">
+            <option v-for="u in users" :key="u.id || u.name" :value="u.id || u.name">
+              {{ u.name }} (ID: {{ u.id }})
+            </option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary);">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input v-model="keyForm.reusable" type="checkbox">
+            <span>允许多设备复用</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input v-model="keyForm.ephemeral" type="checkbox">
+            <span>临时节点</span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button @click="showCreateKeyModal = false" class="pill-btn">取消</button>
+          <button @click="submitCreateKey" class="pill-btn accent">立即生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态弹窗：密钥生成成功展示 (正中间弹出，显式展示完整明文) -->
+    <div class="modal-overlay" :class="{'active': showKeySuccessModal}" @click.self="showKeySuccessModal = false">
+      <div class="modal-card" style="max-width: 520px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(52, 199, 89, 0.15); display: flex; align-items: center; justify-content: center; color: var(--success); font-size: 20px;">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 17px; font-weight: 700; margin: 0;">预授权密钥生成成功</h3>
+            <span style="font-size: 12px; color: var(--text-secondary);">请立即复制并妥善保存此完整密钥</span>
+          </div>
+        </div>
+        
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #d97706; margin-bottom: 14px; line-height: 1.5;">
+          <i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px;"></i>
+          <strong>特别提醒：</strong>该完整明文仅在此弹窗展示一次！关闭弹窗后系统将永久脱敏隐藏（显示为 ***），无法再次查看完整字符。
+        </div>
+
+        <div class="form-item">
+          <label class="form-label" style="font-weight: 600;">完整密钥明文 (点击一键全选)</label>
+          <textarea readonly :value="generatedKeyResult" @click="copyText(generatedKeyResult); showToast('已复制完整密钥！')" rows="3" style="width: 100%; font-family: monospace; font-size: 13px; word-break: break-all; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-secondary); color: var(--text-primary); resize: none;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
+          <button @click="copyText(generatedKeyResult); showToast('已成功复制完整密钥！');" class="pill-btn accent" style="padding: 8px 16px;">
+            <i class="fa-regular fa-copy" style="margin-right: 4px;"></i> 一键复制完整密钥
+          </button>
+          <button @click="showKeySuccessModal = false" class="pill-btn" style="padding: 8px 16px;">
+            我已保存并关闭
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态弹窗：创建用户 (正中间弹出) -->
+    <div class="modal-overlay" :class="{'active': showAddUserModal}" @click.self="showAddUserModal = false">
+      <div class="modal-card">
+        <h3 style="font-size: 16px; font-weight: 700;">创建组织用户</h3>
+        <div class="form-item">
+          <label class="form-label">用户标识</label>
+          <input v-model="newUserName" type="text" placeholder="例如: dev, staging, prod" class="form-field">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button @click="showAddUserModal = false" class="pill-btn">取消</button>
+          <button @click="submitAddUser" class="pill-btn accent">创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apple 级 Toast 提示 -->
+    <div v-if="toast.show" class="apple-toast">
+      <i :class="toast.type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'" :style="{color: toast.type === 'success' ? 'var(--success)' : 'var(--danger)'}"></i>
+      <span>{{ toast.message }}</span>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+    createApp({
+      setup() {
+        const currentTab = ref('nodes');
+        const networkSubTab = ref('users'); // users | keys | routes
+        const loading = ref(false);
+        const connected = ref(true);
+
+        // 主题模式: auto / light / dark
+        const themeMode = ref(localStorage.getItem('headscale_theme') || 'auto');
+        const themeIcons = { auto: '🌓', light: '☀️', dark: '🌙' };
+        const themeLabels = { auto: '自动', light: '浅色', dark: '深色' };
+
+        const applyTheme = (mode) => {
+          themeMode.value = mode;
+          localStorage.setItem('headscale_theme', mode);
+          document.documentElement.setAttribute('data-theme', mode);
+        };
+
+        const cycleTheme = () => {
+          const modes = ['auto', 'light', 'dark'];
+          const nextIdx = (modes.indexOf(themeMode.value) + 1) % modes.length;
+          applyTheme(modes[nextIdx]);
+          showToast(`已切换主题: ${themeLabels[modes[nextIdx]]}`);
+          renderOverviewTopology();
+          renderTopology();
+        };
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          if (themeMode.value === 'auto') {
+            applyTheme('auto');
+            renderOverviewTopology();
+            renderTopology();
+          }
+        });
+
+        const tabNames = {
+          overview: '总览大屏',
+          nodes: '设备列表',
+          topology: '星图拓扑',
+          latency: '时延矩阵',
+          network: '网络管理',
+          acl: '安全策略'
+        };
+
+        const config = ref({ headscale_url: '', api_key_masked: '', has_api_key: false, feishu_webhook: '' });
+        const stats = ref({ total_nodes: 0, online_nodes: 0, offline_nodes: 0, total_users: 0, total_routes: 0, exit_nodes: 0 });
+        const nodes = ref([]);
+        const users = ref([]);
+        const preauthKeys = ref([]);
+        const routes = ref([]);
+        const latencyData = ref({ node_names: [], matrix: [] });
+        const clientCmds = ref({});
+        const aclRawText = ref('');
+        const showAdvancedAcl = ref(false);
+
+        // 交互式安全规则
+        const parsedRules = ref([
+          { action: 'accept', src: ['*'], dst: ['*:*'] }
+        ]);
+
+        const showAddRuleModal = ref(false);
+        const newRule = ref({ action: 'accept', srcType: '*', dstPreset: '*:*', customDst: '' });
+
+        const nodeSearch = ref('');
+        const showSettingsModal = ref(false);
+        const showGuideModal = ref(false);
+        const showAddUserModal = ref(false);
+        const showCreateKeyModal = ref(false);
+        const showKeySuccessModal = ref(false);
+        const generatedKeyResult = ref('');
+        const showRegisterNodeModal = ref(false);
+
+        // 客户端向导配置与计算属性
+        const guidePlatform = ref('ios');
+        const guideServerUrl = ref('');
+        const guideSelectedKey = ref('');
+
+        const cleanServerUrl = computed(() => {
+          let u = (guideServerUrl.value || config.value.public_domain || domainForm.value.server_url || config.value.headscale_url || 'https://hss.abab.pw').trim();
+          if (!/^https?:\/\//i.test(u)) {
+            u = 'https://' + u;
+          }
+          return u.replace(/\/+$/, '');
+        });
+
+        const activePreauthKeys = computed(() => {
+          return preauthKeys.value.filter(k => !isKeyExpired(k));
+        });
+
+        const windowsCommand = computed(() => {
+          const s = cleanServerUrl.value;
+          const k = guideSelectedKey.value ? ` --authkey=${guideSelectedKey.value}` : '';
+          return `tailscale up --login-server=${s}${k} --accept-routes=true`;
+        });
+
+        const macosCommand = computed(() => {
+          const s = cleanServerUrl.value;
+          const k = guideSelectedKey.value ? ` --authkey=${guideSelectedKey.value}` : '';
+          return `tailscale up --login-server=${s}${k} --accept-routes=true`;
+        });
+
+        const linuxCommand = computed(() => {
+          const s = cleanServerUrl.value;
+          const k = guideSelectedKey.value ? ` --authkey=${guideSelectedKey.value}` : '';
+          return `sudo tailscale up --login-server=${s}${k} --accept-routes=true --accept-dns=true`;
+        });
+
+        const settingForm = ref({});
+        const settingsSubTab = ref('general'); // general | domain | cert
+        const domainForm = ref({ server_url: '', sync_to_headscale: true, restart_service: true });
+        const domainConfig = ref({ public_domain: '', headscale_url: '', headscale_config: {} });
+        const isDomainSynced = computed(() => {
+          const hsUrl = (domainConfig.value.headscale_config?.server_url || '').trim().replace(/\/+$/, '');
+          const curUrl = (domainForm.value.server_url || '').trim().replace(/\/+$/, '');
+          return Boolean(hsUrl && curUrl && hsUrl === curUrl);
+        });
+
+        const certForm = ref({ cert_pem: '', key_pem: '', apply_to_headscale: true, restart_service: true });
+        const installedCertInfo = ref(null);
+        const certValidation = ref(null);
+
+        const newUserName = ref('');
+        const keyForm = ref({ user: 'admin', reusable: true, ephemeral: false });
+        const registerForm = ref({ user: 'admin', key: '' });
+
+        const toast = ref({ show: false, message: '', type: 'success' });
+        const showToast = (message, type = 'success') => {
+          toast.value = { show: true, message, type };
+          setTimeout(() => { toast.value.show = false; }, 2600);
+        };
+
+        const copyText = (text) => {
+          if (!text) return;
+          navigator.clipboard.writeText(text);
+          showToast('已复制到剪贴板');
+        };
+
+        const formatTime = (ts) => {
+          if (!ts || ts.startsWith('0001')) return '无记录';
+          try {
+            return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch {
+            return ts;
+          }
+        };
+
+        const isKeyExpired = (k) => {
+          if (!k || !k.expiration) return false;
+          if (k.expiration.startsWith('0001-01-01')) return false;
+          return new Date(k.expiration) < new Date();
+        };
+
+        const formatKeyExpiration = (ts) => {
+          if (!ts || ts.startsWith('0001-01-01')) return '永久有效';
+          try {
+            const d = new Date(ts);
+            if (d < new Date()) return '已失效';
+            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch {
+            return ts;
+          }
+        };
+
+        const openCreateKeyModal = () => {
+          if (users.value.length > 0) {
+            if (!keyForm.value.user || !users.value.some(u => String(u.id) === String(keyForm.value.user) || u.name === keyForm.value.user)) {
+              keyForm.value.user = users.value[0].id || users.value[0].name;
+            }
+          }
+          showCreateKeyModal.value = true;
+        };
+
+        const filteredNodes = computed(() => {
+          if (!nodeSearch.value) return nodes.value;
+          const q = nodeSearch.value.toLowerCase();
+          return nodes.value.filter(n => {
+            const name = (n.givenName || n.name || '').toLowerCase();
+            const ips = (n.ipAddresses || []).join(' ');
+            const u = ((n.user && n.user.name) ? n.user.name : n.user || '').toLowerCase();
+            return name.includes(q) || ips.includes(q) || u.includes(q);
+          });
+        });
+
+        const getCellStyle = (cell) => {
+          if (cell.status === 'self') return { background: 'transparent' };
+          if (cell.status === 'unreachable') return { background: 'rgba(255, 69, 58, 0.15)' };
+          if (cell.latency < 30) return { background: 'rgba(48, 209, 88, 0.12)' };
+          if (cell.latency < 80) return { background: 'rgba(10, 132, 255, 0.12)' };
+          return { background: 'rgba(255, 214, 10, 0.15)' };
+        };
+
+        const getLatencyTextColor = (latency) => {
+          if (latency === undefined || latency === null) return 'var(--text-secondary)';
+          if (latency < 30) return 'var(--success)';
+          if (latency < 80) return 'var(--accent)';
+          return 'var(--warning)';
+        };
+
+        const fetchConfig = async () => {
+          try {
+            const res = await fetch('/api/extra/config');
+            if (res.ok) {
+              const data = await res.json();
+              config.value = data;
+              settingForm.value = { ...data };
+              if (data.public_domain) {
+                guideServerUrl.value = data.public_domain;
+              } else if (!guideServerUrl.value || guideServerUrl.value.includes('127.0.0.1')) {
+                guideServerUrl.value = data.headscale_url || '';
+              }
+            }
+          } catch(e) {}
+        };
+
+        const fetchStats = async () => {
+          try {
+            const res = await fetch('/api/extra/stats');
+            if (res.ok) stats.value = await res.json();
+          } catch(e) {}
+        };
+
+        const fetchNodes = async () => {
+          try {
+            const res = await fetch('/api/v1/node');
+            if (res.ok) {
+              const data = await res.json();
+              nodes.value = data.nodes || [];
+              connected.value = true;
+            } else {
+              connected.value = false;
+            }
+          } catch(e) {
+            connected.value = false;
+          }
+        };
+
+        const fetchUsers = async () => {
+          try {
+            const res = await fetch('/api/v1/user');
+            if (res.ok) {
+              const data = await res.json();
+              users.value = data.users || [];
+              if (users.value.length > 0) {
+                if (!keyForm.value.user || !users.value.some(u => String(u.id) === String(keyForm.value.user) || u.name === keyForm.value.user)) {
+                  keyForm.value.user = users.value[0].id || users.value[0].name;
+                }
+                registerForm.value.user = users.value[0].name;
+              }
+            }
+          } catch(e) {}
+        };
+
+        const fetchPreauthKeys = async () => {
+          try {
+            const res = await fetch('/api/v1/preauthkey');
+            if (res.ok) {
+              const data = await res.json();
+              preauthKeys.value = data.preAuthKeys || [];
+            }
+          } catch(e) {}
+        };
+
+        const fetchRoutes = async () => {
+          try {
+            const res = await fetch('/api/v1/routes');
+            if (res.ok) {
+              const data = await res.json();
+              routes.value = data.routes || [];
+            }
+          } catch(e) {}
+        };
+
+        const fetchLatency = async () => {
+          try {
+            const res = await fetch('/api/extra/latency');
+            if (res.ok) latencyData.value = await res.json();
+          } catch(e) {}
+        };
+
+        const fetchClientCmds = async () => {
+          try {
+            const res = await fetch('/api/extra/client-commands');
+            if (res.ok) clientCmds.value = await res.json();
+          } catch(e) {}
+        };
+
+        const fetchAcl = async () => {
+          try {
+            const res = await fetch('/api/extra/acl');
+            if (res.ok) {
+              const data = await res.json();
+              aclRawText.value = data.raw;
+              if (data.policy && data.policy.acls) {
+                parsedRules.value = data.policy.acls;
+              }
+            }
+          } catch(e) {}
+        };
+
+        const refreshAll = async () => {
+          loading.value = true;
+          await Promise.all([
+            fetchConfig(),
+            fetchDomainConfig(),
+            fetchStats(),
+            fetchNodes(),
+            fetchUsers(),
+            fetchRoutes(),
+            fetchLatency(),
+            fetchClientCmds(),
+            fetchAcl()
+          ]);
+          await fetchPreauthKeys();
+          loading.value = false;
+          showToast('数据已同步');
+        };
+
+        // 交互式添加安全策略规则
+        const submitAddRule = async () => {
+          const dst = newRule.value.dstPreset === 'custom' ? (newRule.value.customDst || '*:*') : newRule.value.dstPreset;
+          const ruleObj = {
+            action: newRule.value.action,
+            src: [newRule.value.srcType],
+            dst: [dst]
+          };
+          parsedRules.value.push(ruleObj);
+          showAddRuleModal.value = false;
+
+          // 组装并保存
+          try {
+            let policy = {};
+            try { policy = JSON.parse(aclRawText.value); } catch {}
+            policy.acls = parsedRules.value;
+            aclRawText.value = JSON.stringify(policy, null, 2);
+            await fetch('/api/extra/acl', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ raw: aclRawText.value })
+            });
+            showToast('安全策略已保存生效！');
+          } catch(e) {}
+        };
+
+        const deleteAclRule = async (idx) => {
+          parsedRules.value.splice(idx, 1);
+          try {
+            let policy = {};
+            try { policy = JSON.parse(aclRawText.value); } catch {}
+            policy.acls = parsedRules.value;
+            aclRawText.value = JSON.stringify(policy, null, 2);
+            await fetch('/api/extra/acl', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ raw: aclRawText.value })
+            });
+            showToast('规则已移除');
+          } catch(e) {}
+        };
+
+        const saveRawAcl = async () => {
+          try {
+            await fetch('/api/extra/acl', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ raw: aclRawText.value })
+            });
+            showToast('策略源码已保存！');
+            fetchAcl();
+          } catch(e) {}
+        };
+
+        let fullChart = null;
+        let overviewChart = null;
+
+        const isDarkNow = () => {
+          if (themeMode.value === 'dark') return true;
+          if (themeMode.value === 'light') return false;
+          return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        };
+
+        const renderTopology = async () => {
+          await nextTick();
+          const dom = document.getElementById('full-topology');
+          if (!dom) return;
+          if (!fullChart) fullChart = echarts.init(dom);
+          
+          try {
+            const res = await fetch('/api/extra/topology');
+            const data = await res.json();
+            
+            const option = {
+              backgroundColor: 'transparent',
+              series: [{
+                type: 'graph',
+                layout: 'force',
+                roam: true,
+                draggable: true,
+                label: { show: true, position: 'bottom', color: isDarkNow() ? '#f5f5f7' : '#1d1d1f', fontSize: 11 },
+                data: data.nodes,
+                links: data.links,
+                force: {
+                  repulsion: 360,
+                  edgeLength: [60, 120]
+                }
+              }]
+            };
+            fullChart.setOption(option);
+          } catch(e) {}
+        };
+
+        const renderOverviewTopology = async () => {
+          await nextTick();
+          const dom = document.getElementById('overview-topology');
+          if (!dom) return;
+          if (!overviewChart) overviewChart = echarts.init(dom);
+          
+          try {
+            const res = await fetch('/api/extra/topology');
+            const data = await res.json();
+            
+            const option = {
+              backgroundColor: 'transparent',
+              series: [{
+                type: 'graph',
+                layout: 'force',
+                roam: false,
+                label: { show: true, position: 'bottom', color: isDarkNow() ? '#8e8e93' : '#86868b', fontSize: 10 },
+                data: data.nodes,
+                links: data.links,
+                force: {
+                  repulsion: 220,
+                  edgeLength: 50
+                }
+              }]
+            };
+            overviewChart.setOption(option);
+          } catch(e) {}
+        };
+
+        const saveSettings = async () => {
+          try {
+            const res = await fetch('/api/extra/config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(settingForm.value)
+            });
+            if (res.ok) {
+              showToast('设置已保存');
+              showSettingsModal.value = false;
+              refreshAll();
+            }
+          } catch(e) {}
+        };
+
+        const testCurrentConnection = async () => {
+          try {
+            const res = await fetch('/api/extra/test-connection', { method: 'POST' });
+            const data = await res.json();
+            showToast(data.success ? '连接成功！' : data.error, data.success ? 'success' : 'error');
+          } catch(e) {
+            showToast('测试失败', 'error');
+          }
+        };
+
+        const triggerTestAlert = async () => {
+          try {
+            const res = await fetch('/api/extra/alert/test', { method: 'POST' });
+            const data = await res.json();
+            showToast(res.ok ? (data.message || '已发送通知') : data.detail, res.ok ? 'success' : 'error');
+          } catch(e) {
+            showToast('发送失败', 'error');
+          }
+        };
+
+        const fetchDomainConfig = async () => {
+          try {
+            const res = await fetch('/api/extra/domain-config');
+            if (res.ok) {
+              const data = await res.json();
+              domainConfig.value = data;
+              domainForm.value.server_url = data.public_domain || data.headscale_config?.server_url || '';
+              if (domainForm.value.server_url) {
+                guideServerUrl.value = domainForm.value.server_url;
+              }
+            }
+          } catch(e) {}
+        };
+
+        const saveDomainSettings = async () => {
+          if (!domainForm.value.server_url.trim()) {
+            showToast('域名/地址不能为空', 'error');
+            return;
+          }
+          try {
+            const res = await fetch('/api/extra/domain-config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                server_url: domainForm.value.server_url.trim(),
+                sync_headscale_config: domainForm.value.sync_to_headscale,
+                restart_service: domainForm.value.restart_service
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              showToast(data.message || '域名设置已成功保存！');
+              guideServerUrl.value = data.server_url;
+              await fetchDomainConfig();
+            } else {
+              showToast(data.detail || '保存域名失败', 'error');
+            }
+          } catch(e) {
+            showToast('请求异常，请检查网络', 'error');
+          }
+        };
+
+        const fetchCertInfo = async () => {
+          try {
+            const res = await fetch('/api/extra/certificate/info');
+            if (res.ok) {
+              const data = await res.json();
+              installedCertInfo.value = data.installed ? data.cert : null;
+            }
+          } catch(e) {}
+        };
+
+        const onCertFileChange = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            certForm.value.cert_pem = evt.target.result;
+            showToast(`已加载证书文件: ${file.name}`);
+            validateCertInput();
+          };
+          reader.readAsText(file);
+        };
+
+        const onKeyFileChange = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            certForm.value.key_pem = evt.target.result;
+            showToast(`已加载私钥文件: ${file.name}`);
+            validateCertInput();
+          };
+          reader.readAsText(file);
+        };
+
+        const validateCertInput = async () => {
+          if (!certForm.value.cert_pem.trim()) {
+            showToast('请先输入或选择证书内容', 'error');
+            return;
+          }
+          try {
+            const res = await fetch('/api/extra/certificate/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                cert_pem: certForm.value.cert_pem.trim(),
+                key_pem: certForm.value.key_pem.trim()
+              })
+            });
+            const data = await res.json();
+            if (res.ok) {
+              certValidation.value = data.data;
+              if (data.data.key_match === true) {
+                showToast('证书与私钥完全匹配通过！');
+              } else if (data.data.key_match === false) {
+                showToast('警告：私钥与证书公钥不匹配！', 'error');
+              } else {
+                showToast('证书格式验证通过');
+              }
+            } else {
+              certValidation.value = null;
+              showToast(data.detail || '证书解析验证失败', 'error');
+            }
+          } catch(e) {
+            showToast('验证请求失败', 'error');
+          }
+        };
+
+        const importCertSubmit = async () => {
+          if (!certForm.value.cert_pem.trim() || !certForm.value.key_pem.trim()) {
+            showToast('必须同时提供证书与私钥', 'error');
+            return;
+          }
+          try {
+            const res = await fetch('/api/extra/certificate/import', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                cert_pem: certForm.value.cert_pem.trim(),
+                key_pem: certForm.value.key_pem.trim(),
+                apply_to_headscale: certForm.value.apply_to_headscale,
+                restart_service: certForm.value.restart_service
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              showToast(data.message || 'SSL 证书已成功导入并保存！');
+              installedCertInfo.value = data.cert_info;
+              certForm.value.cert_pem = '';
+              certForm.value.key_pem = '';
+              certValidation.value = null;
+              await fetchCertInfo();
+            } else {
+              showToast(data.detail || '证书导入失败', 'error');
+            }
+          } catch(e) {
+            showToast('导入请求异常', 'error');
+          }
+        };
+
+        const submitAddUser = async () => {
+          if (!newUserName.value.trim()) return;
+          try {
+            const res = await fetch('/api/v1/user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: newUserName.value.trim() })
+            });
+            if (res.ok) {
+              showToast('用户创建成功');
+              newUserName.value = '';
+              showAddUserModal.value = false;
+              refreshAll();
+            }
+          } catch(e) {}
+        };
+
+        const deleteUser = async (userObj) => {
+          const name = typeof userObj === 'object' ? userObj.name : userObj;
+          const id = typeof userObj === 'object' ? (userObj.id || userObj.name) : userObj;
+          if (!confirm(`确定删除空间用户【${name}】吗？此操作不可撤销，该空间下设备将无法通信！`)) return;
+          try {
+            const res = await fetch(`/api/v1/user/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            if (res.ok) {
+              showToast(`空间用户【${name}】已成功删除`);
+              await refreshAll();
+            } else {
+              const err = await res.json().catch(() => ({}));
+              showToast(err.message || '删除用户失败', 'error');
+            }
+          } catch(e) {
+            showToast('请求异常，请检查网络', 'error');
+          }
+        };
+
+        const submitCreateKey = async () => {
+          if (!keyForm.value.user) {
+            showToast('请先选择归属空间用户', 'error');
+            return;
+          }
+          try {
+            const res = await fetch('/api/v1/preauthkey', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(keyForm.value)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              showCreateKeyModal.value = false;
+              const k = data.preAuthKey?.key || data.key;
+              if (k) {
+                generatedKeyResult.value = k;
+                guideSelectedKey.value = k;
+                showKeySuccessModal.value = true;
+                copyText(k);
+              } else {
+                showToast('密钥已成功生成');
+              }
+              await fetchPreauthKeys();
+            } else {
+              showToast(data.message || data.detail || '生成密钥失败，请检查参数', 'error');
+            }
+          } catch(e) {
+            showToast('请求异常，请检查网络连接', 'error');
+          }
+        };
+
+        const expireKey = async (k) => {
+          if (!confirm('确定作废该接入密钥吗？作废后无法再次用于设备入网！')) return;
+          try {
+            const res = await fetch('/api/v1/preauthkey/expire', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: k.id,
+                user: k.user?.id || k.user?.name || k.user,
+                key: k.key
+              })
+            });
+            if (res.ok) {
+              showToast('密钥已成功作废');
+              await fetchPreauthKeys();
+            } else {
+              const err = await res.json().catch(() => ({}));
+              showToast(err.message || err.detail || '作废密钥失败', 'error');
+            }
+          } catch(e) {
+            showToast('作废请求异常', 'error');
+          }
+        };
+
+        const submitRegisterNode = async () => {
+          if (!registerForm.value.key.trim()) return;
+          try {
+            const res = await fetch(`/api/v1/node/register?user=${encodeURIComponent(registerForm.value.user)}&key=${encodeURIComponent(registerForm.value.key.trim())}`, {
+              method: 'POST'
+            });
+            if (res.ok) {
+              showToast('设备审批成功！');
+              showRegisterNodeModal.value = false;
+              registerForm.value.key = '';
+              refreshAll();
+            } else {
+              showToast('登记失败，请检查机器码', 'error');
+            }
+          } catch(e) {}
+        };
+
+        const deleteNode = async (n) => {
+          const name = n.givenName || n.name || ('Node-' + n.id);
+          if (!confirm(`确定注销节点【${name}】吗？`)) return;
+          try {
+            const res = await fetch(`/api/v1/node/${n.id}`, { method: 'DELETE' });
+            if (res.ok) {
+              showToast('设备已注销');
+              refreshAll();
+            }
+          } catch(e) {}
+        };
+
+        const openRenameNodeModal = async (n) => {
+          const cur = n.givenName || n.name;
+          const val = prompt('输入设备显示名称：', cur);
+          if (val && val.trim() && val.trim() !== cur) {
+            try {
+              const res = await fetch(`/api/v1/node/${n.id}/rename/${encodeURIComponent(val.trim())}`, { method: 'POST' });
+              if (res.ok) {
+                showToast('修改成功');
+                refreshAll();
+              }
+            } catch(e) {}
+          }
+        };
+
+        const toggleRoute = async (routeId, enable) => {
+          try {
+            const path = enable ? `/api/v1/routes/${routeId}/enable` : `/api/v1/routes/${routeId}/disable`;
+            const res = await fetch(path, { method: 'POST' });
+            if (res.ok) {
+              showToast(enable ? '路由已激活' : '路由已禁用');
+              fetchRoutes();
+            }
+          } catch(e) {}
+        };
+
+        window.addEventListener('resize', () => {
+          overviewChart && overviewChart.resize();
+          fullChart && fullChart.resize();
+        });
+
+        onMounted(() => {
+          applyTheme(themeMode.value);
+          refreshAll();
+          fetchDomainConfig();
+          fetchCertInfo();
+        });
+
+        return {
+          currentTab,
+          networkSubTab,
+          loading,
+          connected,
+          themeMode,
+          themeIcons,
+          themeLabels,
+          tabNames,
+          config,
+          stats,
+          nodes,
+          users,
+          preauthKeys,
+          routes,
+          latencyData,
+          clientCmds,
+          aclRawText,
+          parsedRules,
+          showAddRuleModal,
+          newRule,
+          showAdvancedAcl,
+          nodeSearch,
+          filteredNodes,
+          showSettingsModal,
+          showGuideModal,
+          showAddUserModal,
+          showCreateKeyModal,
+          showKeySuccessModal,
+          generatedKeyResult,
+          showRegisterNodeModal,
+          settingForm,
+          settingsSubTab,
+          domainForm,
+          domainConfig,
+          isDomainSynced,
+          certForm,
+          installedCertInfo,
+          certValidation,
+          newUserName,
+          keyForm,
+          registerForm,
+          toast,
+          cycleTheme,
+          copyText,
+          formatTime,
+          getCellStyle,
+          getLatencyTextColor,
+          refreshAll,
+          renderTopology,
+          renderOverviewTopology,
+          saveSettings,
+          testCurrentConnection,
+          triggerTestAlert,
+          fetchDomainConfig,
+          saveDomainSettings,
+          fetchCertInfo,
+          onCertFileChange,
+          onKeyFileChange,
+          validateCertInput,
+          importCertSubmit,
+          submitAddUser,
+          deleteUser,
+          submitCreateKey,
+          expireKey,
+          submitRegisterNode,
+          deleteNode,
+          openRenameNodeModal,
+          toggleRoute,
+          submitAddRule,
+          deleteAclRule,
+          saveRawAcl,
+          openCreateKeyModal,
+          isKeyExpired,
+          formatKeyExpiration,
+          guidePlatform,
+          guideServerUrl,
+          guideSelectedKey,
+          cleanServerUrl,
+          activePreauthKeys,
+          windowsCommand,
+          macosCommand,
+          linuxCommand
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

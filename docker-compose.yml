@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  headscale-dashboard:
+    build: .
+    container_name: headscale-dashboard
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - HEADSCALE_URL=http://127.0.0.1:8085
+      - HEADSCALE_API_KEY=
+      - FEISHU_WEBHOOK=
+    volumes:
+      - ./backend/config.json:/app/backend/config.json
