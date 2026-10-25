@@ -212,10 +212,11 @@ def update_headscale_server_url(new_server_url: str) -> bool:
     try:
         content = HEADSCALE_CONFIG_FILE.read_text(encoding="utf-8")
         clean_url = new_server_url.strip().rstrip("/")
-        # 使用正则替换，保留原有缩进和注释
+        # 使用正则替换，保留原有缩进和注释（转义反斜杠，防止替换串被误解析）
+        url_repl = clean_url.replace("\\", "\\\\")
         new_content, count = re.subn(
             r"^(\s*server_url:\s*)[^\n#]+(.*)$",
-            rf"\g<1>{clean_url}\g<2>",
+            rf"\g<1>{url_repl}\g<2>",
             content,
             flags=re.MULTILINE
         )

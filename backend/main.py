@@ -747,9 +747,11 @@ if STATIC_DIR.exists():
     async def serve_spa(full_path: str):
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="API Not Found")
-        target_file = STATIC_DIR / full_path
-        if full_path and target_file.is_file():
-            return FileResponse(target_file)
+        if full_path:
+            target_file = (STATIC_DIR / full_path).resolve()
+            base_dir = STATIC_DIR.resolve()
+            if str(target_file).startswith(str(base_dir) + os.sep) and target_file.is_file():
+                return FileResponse(target_file)
         return FileResponse(STATIC_DIR / "index.html")
 
 if __name__ == "__main__":

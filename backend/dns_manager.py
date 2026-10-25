@@ -84,6 +84,16 @@ def read_dns_config() -> Dict[str, Any]:
     result["synced_to_headscale"] = HEADSCALE_CONFIG_FILE.exists()
     return result
 
+def _yaml_escape(value: str) -> str:
+    """转义写入双引号 YAML 标量时的特殊字符，防止注入破坏 config.yaml 结构"""
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", " ")
+        .replace("\n", " ")
+    )
+
 def save_dns_config(
     magic_dns: bool,
     base_domain: str,
@@ -98,14 +108,14 @@ def save_dns_config(
     for r in extra_records:
         if isinstance(r, dict) and r.get("name") and r.get("value"):
             clean_records.append({
-                "name": str(r["name"]).strip(),
-                "type": str(r.get("type", "A")).upper().strip(),
-                "value": str(r["value"]).strip()
+                "name": _yaml_escape(str(r["name"]).strip()),
+                "type": _yaml_escape(str(r.get("type", "A")).upper().strip()),
+                "value": _yaml_escape(str(r["value"]).strip())
             })
 
     data_to_save = {
         "magic_dns": bool(magic_dns),
-        "base_domain": str(base_domain).strip().rstrip("."),
+        "base_domain": re.sub(r"[^A-Za-z0-9.\-]", "", str(base_domain).strip().rstrip(".")),
         "override_local_dns": bool(override_local_dns),
         "nameservers": clean_ns,
         "extra_records": clean_records,
